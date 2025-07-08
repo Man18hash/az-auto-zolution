@@ -1,0 +1,167 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
+
+class InventorySeeder extends Seeder
+{
+    public function run()
+    {
+        $now = Carbon::now();
+        DB::table('inventories')->insert([
+            [
+                'item_name'         => 'Oil Filter',
+                'quantity'          => 50,
+                'part_number'       => 'OF-1001',
+                'acquisition_price' => 75.00,
+                'supplier'          => 'MegaParts Trading',
+                'selling'           => 120.00,
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ],
+            [
+                'item_name'         => 'Air Filter',
+                'quantity'          => 35,
+                'part_number'       => 'AF-2002',
+                'acquisition_price' => 150.00,
+                'supplier'          => 'FilterPro Supplies',
+                'selling'           => 250.00,
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ],
+            [
+                'item_name'         => 'Brake Pad Set (Front)',
+                'quantity'          => 20,
+                'part_number'       => 'BPF-3003',
+                'acquisition_price' => 450.00,
+                'supplier'          => 'BrakeMaster Co.',
+                'selling'           => 700.00,
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ],
+            [
+                'item_name'         => 'Spark Plug',
+                'quantity'          => 100,
+                'part_number'       => 'SP-4004',
+                'acquisition_price' => 85.00,
+                'supplier'          => 'Ignite Auto Parts',
+                'selling'           => 140.00,
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ],
+            [
+                'item_name'         => 'Engine Oil (1L Synthetic)',
+                'quantity'          => 80,
+                'part_number'       => 'EO-5105',
+                'acquisition_price' => 280.00,
+                'supplier'          => 'LubeLite Philippines',
+                'selling'           => 450.00,
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ],
+            [
+                'item_name'         => 'Coolant (1L)',
+                'quantity'          => 60,
+                'part_number'       => 'CL-6106',
+                'acquisition_price' => 120.00,
+                'supplier'          => 'CoolFlow Distributors',
+                'selling'           => 200.00,
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ],
+            [
+                'item_name'         => 'Wiper Blade (24")',
+                'quantity'          => 40,
+                'part_number'       => 'WB-7207',
+                'acquisition_price' => 95.00,
+                'supplier'          => 'ClearView Auto',
+                'selling'           => 160.00,
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ],
+            [
+                'item_name'         => 'Serpentine Belt',
+                'quantity'          => 25,
+                'part_number'       => 'SB-8308',
+                'acquisition_price' => 320.00,
+                'supplier'          => 'DriveLine Supplies',
+                'selling'           => 520.00,
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ],
+            [
+                'item_name'         => 'Radiator Hose Upper',
+                'quantity'          => 15,
+                'part_number'       => 'RHU-9409',
+                'acquisition_price' => 180.00,
+                'supplier'          => 'HoseHub Inc.',
+                'selling'           => 300.00,
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ],
+            [
+                'item_name'         => 'Car Battery (45 Ah)',
+                'quantity'          => 10,
+                'part_number'       => 'CB-4510',
+                'acquisition_price' => 2_800.00,
+                'supplier'          => 'PowerCell Batteries',
+                'selling'           => 4_200.00,
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ],
+            [
+                'item_name'         => 'Brake Fluid (DOT 4)',
+                'quantity'          => 30,
+                'part_number'       => 'BF-11011',
+                'acquisition_price' => 95.00,
+                'supplier'          => 'FluidTech Supplies',
+                'selling'           => 160.00,
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ],
+            [
+                'item_name'         => 'Transmission Fluid (1L)',
+                'quantity'          => 25,
+                'part_number'       => 'TF-12112',
+                'acquisition_price' => 220.00,
+                'supplier'          => 'GearGuard Philippines',
+                'selling'           => 380.00,
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ],
+            [
+                'item_name'         => 'Headlight Bulb (H4)',
+                'quantity'          => 45,
+                'part_number'       => 'HB-13113',
+                'acquisition_price' => 130.00,
+                'supplier'          => 'BrightLight Auto',
+                'selling'           => 210.00,
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ],
+            [
+                'item_name'         => 'Fuse Assortment Kit',
+                'quantity'          => 20,
+                'part_number'       => 'FK-14114',
+                'acquisition_price' => 160.00,
+                'supplier'          => 'SafeCircuit Supplies',
+                'selling'           => 260.00,
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ],
+            [
+                'item_name'         => 'Tire Repair Kit',
+                'quantity'          => 12,
+                'part_number'       => 'TRK-15115',
+                'acquisition_price' => 350.00,
+                'supplier'          => 'RoadAid Tools',
+                'selling'           => 550.00,
+                'created_at'        => $now,
+                'updated_at'        => $now,
+            ],
+        ]);
+    }
+}

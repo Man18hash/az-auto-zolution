@@ -1,0 +1,187 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Middleware\RoleMiddleware;
+use App\Http\Controllers\InventoryController;
+use App\Http\Controllers\ClientController;
+use App\Http\Controllers\VehicleController;
+use App\Http\Controllers\Cashier\QuotationController;
+use App\Http\Controllers\Cashier\ServiceOrderController;
+use App\Http\Controllers\Cashier\InvoiceController;
+use App\Http\Controllers\Cashier\HistoryController;
+use App\Http\Controllers\Cashier\ExpensesController;
+use App\Http\Controllers\Cashier\ARCashDepositController;
+use App\Http\Controllers\Cashier\AppointmentController;
+use App\Http\Controllers\Admin\SalesReportController;
+use App\Http\Controllers\Admin\GrossSalesReportController;
+use App\Http\Controllers\Admin\DiscountReportController;
+use App\Http\Controllers\Cashier\HomeController;
+use App\Http\Controllers\Admin\IncomeAnalysisReportController;
+
+
+
+// Redirect root URL to login
+Route::get('/', function () {
+    return redirect()->route('login');
+});
+
+/*
+|--------------------------------------------------------------------------
+| Register custom middleware alias
+|--------------------------------------------------------------------------
+*/
+Route::aliasMiddleware('role', RoleMiddleware::class);
+
+/*
+|--------------------------------------------------------------------------
+| Authentication Routes
+|--------------------------------------------------------------------------
+*/
+Route::middleware('guest')->group(function () {
+    Route::get('login',  [LoginController::class, 'showLoginForm'])->name('login');
+    Route::post('login', [LoginController::class, 'login']);
+});
+
+Route::post('logout', [LoginController::class, 'logout'])
+     ->middleware('auth')
+     ->name('logout');
+
+/*
+|--------------------------------------------------------------------------
+| Admin Dashboard (only admin users)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth','role:admin'])
+     ->prefix('admin')
+     ->name('admin.')
+     ->group(function () {
+
+         // Admin Dashboard
+         Route::view('home', 'admin.home')->name('home');
+
+         // Sales Report
+         Route::get('sales-report', [SalesReportController::class, 'index'])->name('sales-report');
+         Route::get('sales-report/export', [SalesReportController::class, 'export'])->name('sales-report.export');
+
+         // Gross Sales Report (FIXED)
+         Route::get('gross-sales-report', [GrossSalesReportController::class, 'index'])->name('gross-sales-report');
+         Route::get('gross-sales-report/export', [GrossSalesReportController::class, 'export'])->name('gross-sales-report.export');
+
+         // Other Reports
+         Route::view('income-analysis-report', 'admin.income-analysis-report')->name('income-analysis-report');
+         Route::get('discount-report', [App\Http\Controllers\Admin\DiscountReportController::class, 'index'])->name('discount-report');
+
+         Route::get('income-analysis-report', [IncomeAnalysisReportController::class, 'index'])->name('income-analysis-report');
+        
+     });
+/*
+|--------------------------------------------------------------------------
+| Cashier Pages & CRUD (only cashier users)
+|--------------------------------------------------------------------------
+*/
+Route::middleware(['auth','role:cashier'])
+     ->prefix('cashier')
+     ->name('cashier.')
+     ->group(function () {
+
+         // Dashboard
+         Route::get('home', [HomeController::class, 'index'])->name('home');
+         Route::get('dashboard', [HomeController::class, 'index'])->name('dashboard');
+
+          // Appointment CRUD
+       // Appointment CRUD
+    Route::get   ('appointment',            [AppointmentController::class,'index'])   ->name('appointment.index');
+    Route::get   ('appointment/create',     [AppointmentController::class,'create'])  ->name('appointment.create');
+    Route::post  ('appointment',            [AppointmentController::class,'store'])   ->name('appointment.store');
+    Route::get   ('appointment/{id}/edit',  [AppointmentController::class,'edit'])    ->name('appointment.edit');
+    Route::put   ('appointment/{id}',       [AppointmentController::class,'update'])  ->name('appointment.update');
+    Route::delete('appointment/{id}',       [AppointmentController::class,'destroy']) ->name('appointment.destroy');
+    Route::get   ('appointment/{id}/view',  [AppointmentController::class,'view'])    ->name('appointment.view');
+
+         // Quotation CRUD
+         Route::resource('quotation', QuotationController::class)
+              ->except(['destroy']);
+         Route::get('quotation/{id}/view', [QuotationController::class, 'view'])->name('quotation.view');
+
+         // History
+         Route::get('history', [HistoryController::class, 'index'])->name('history');
+         Route::get('history/{id}/view', [HistoryController::class, 'view'])->name('history.view');
+
+         // Service Order CRUD
+         Route::resource('serviceorder', ServiceOrderController::class)
+              ->except(['destroy', 'show'])
+              ->names([
+                  'index'   => 'serviceorder.index',
+                  'create'  => 'serviceorder.create',
+                  'store'   => 'serviceorder.store',
+                  'edit'    => 'serviceorder.edit',
+                  'update'  => 'serviceorder.update',
+              ]);
+         Route::get('serviceorder/{id}/view', [ServiceOrderController::class, 'view'])->name('serviceorder.view');
+         Route::get('service-order', [ServiceOrderController::class, 'index'])->name('service-order');
+
+         // Invoice CRUD
+         Route::resource('invoice', InvoiceController::class)
+              ->except(['destroy', 'show'])
+              ->names([
+                  'index'   => 'invoice.index',
+                  'create'  => 'invoice.create',
+                  'store'   => 'invoice.store',
+                  'edit'    => 'invoice.edit',
+                  'update'  => 'invoice.update',
+              ]);
+         Route::get('invoice/{id}/view', [InvoiceController::class, 'view'])->name('invoice.view');
+         Route::view('invoice-blank', 'cashier.invoice-blank')->name('invoice-blank');
+
+         // Inventory CRUD
+         Route::resource('inventory', InventoryController::class)
+              ->only(['index','store','update','destroy'])
+              ->names([
+                  'index'   => 'inventory.index',
+                  'store'   => 'inventory.store',
+                  'update'  => 'inventory.update',
+                  'destroy' => 'inventory.destroy',
+              ]);
+
+         // Clients CRUD (AJAX)
+         Route::resource('clients', ClientController::class)
+              ->only(['index','store','update','destroy'])
+              ->names([
+                  'index'   => 'clients.index',
+                  'store'   => 'clients.store',
+                  'update'  => 'clients.update',
+                  'destroy' => 'clients.destroy',
+              ]);
+
+         // Vehicles CRUD (AJAX)
+         Route::resource('vehicles', VehicleController::class)
+              ->only(['index','store','update','destroy'])
+              ->names([
+                  'index'   => 'vehicles.index',
+                  'store'   => 'vehicles.store',
+                  'update'  => 'vehicles.update',
+                  'destroy' => 'vehicles.destroy',
+              ]);
+
+         // Expenses
+         Route::resource('expenses', ExpensesController::class)
+              ->names([
+                  'index'   => 'expenses.index',
+                  'create'  => 'expenses.create',
+                  'store'   => 'expenses.store',
+                  'edit'    => 'expenses.edit',
+                  'update'  => 'expenses.update',
+                  'destroy' => 'expenses.destroy',
+              ]);
+
+         // AR & Cash Deposit
+         Route::get('ar-cashdeposit', [ARCashDepositController::class, 'index'])->name('ar-cashdeposit.index');
+         Route::post('ar-cashdeposit/store-ar', [ARCashDepositController::class, 'storeAR'])->name('ar-cashdeposit.storeAR');
+         Route::put('ar-cashdeposit/update-ar/{id}', [ARCashDepositController::class, 'updateAR'])->name('ar-cashdeposit.updateAR');
+         Route::delete('ar-cashdeposit/destroy-ar/{id}', [ARCashDepositController::class, 'destroyAR'])->name('ar-cashdeposit.destroyAR');
+         Route::post('ar-cashdeposit/store-cashdeposit', [ARCashDepositController::class, 'storeCashDeposit'])->name('ar-cashdeposit.storeCashDeposit');
+         Route::put('ar-cashdeposit/update-cashdeposit/{id}', [ARCashDepositController::class, 'updateCashDeposit'])->name('ar-cashdeposit.updateCashDeposit');
+         Route::delete('ar-cashdeposit/destroy-cashdeposit/{id}', [ARCashDepositController::class, 'destroyCashDeposit'])->name('ar-cashdeposit.destroyCashDeposit');
+
+     });
