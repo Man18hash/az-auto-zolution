@@ -155,6 +155,7 @@
       <a href="{{ route('admin.gross-sales-report') }}"><i class="fas fa-coins"></i> Gross Sales Report</a>
       <a href="{{ route('admin.income-analysis-report') }}"><i class="fas fa-chart-pie"></i> Income Analysis</a>
       <a href="{{ route('admin.discount-report') }}"><i class="fas fa-percent"></i> Discount Report</a>
+      <a href="{{ route('admin.email-employee') }}"><i class="fas fa-percent"></i> EMAIL/EMPLOYEE</a>
       <form method="POST" action="{{ route('logout') }}" class="logout-btn">
         @csrf
         <button type="submit" class="btn btn-danger w-100">

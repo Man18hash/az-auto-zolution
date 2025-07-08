@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\GrossSalesReportController;
 use App\Http\Controllers\Admin\DiscountReportController;
 use App\Http\Controllers\Cashier\HomeController;
 use App\Http\Controllers\Admin\IncomeAnalysisReportController;
+use App\Http\Controllers\Admin\EmailEmployeeController;
 
 
 
@@ -74,6 +75,15 @@ Route::middleware(['auth','role:admin'])
 
          Route::get('income-analysis-report', [IncomeAnalysisReportController::class, 'index'])->name('income-analysis-report');
         
+
+        Route::get('email-employee', [EmailEmployeeController::class, 'index'])->name('email-employee');
+        Route::post('user/store', [EmailEmployeeController::class, 'storeUser'])->name('user.store');
+        Route::post('technician/store', [EmailEmployeeController::class, 'storeTechnician'])->name('technician.store');
+        Route::put('user/{id}', [EmailEmployeeController::class, 'updateUser'])->name('user.update');
+        Route::put('technician/{id}', [EmailEmployeeController::class, 'updateTechnician'])->name('technician.update');
+        Route::delete('user/{id}', [EmailEmployeeController::class, 'destroyUser'])->name('user.delete');
+        Route::delete('technician/{id}', [EmailEmployeeController::class, 'destroyTechnician'])->name('technician.delete');
+
      });
 /*
 |--------------------------------------------------------------------------

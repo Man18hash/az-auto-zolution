@@ -9,7 +9,8 @@ class AddRoleToUsersTable extends Migration
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('role')->default('cashier')->after('email');
+            // Set the role column without a default
+            $table->string('role')->nullable()->after('email');
         });
     }
 
