@@ -4,16 +4,33 @@
 
 @section('content')
 @php
-  // — Pre-calculations: drop zero-rows & compute sums
-  $items        = $invoice->items->filter(fn($i) => $i->line_total > 0);
-  $jobs         = $invoice->jobs->filter(fn($j) => $j->total > 0);
-  $materials    = $items->sum('line_total');
-  $labor_total  = $jobs->sum('total');
-  $total_sales  = $materials + $labor_total;
-  $net_of_vat   = $total_sales / 1.12;
-  $vat_amount   = $total_sales - $net_of_vat;
-  $net_sales    = $total_sales - $invoice->total_discount;
+    // — only include non‐zero lines
+    $items       = $invoice->items->filter(function($i){ return $i->line_total > 0; });
+    $jobs        = $invoice->jobs->filter(function($j){ return $j->total > 0;   });
+
+    // 1) sum of parts
+    $materials    = $items->sum('line_total');
+
+    // 2) sum of labor
+    $labor_total  = $jobs->sum('total');
+
+    // 3) grand total (VAT‐inclusive)
+    $total_sales  = $materials + $labor_total;
+
+    // 4) back out VAT from the grand total:
+    //    net of VAT = total_sales ÷ 1.12
+    $net_of_vat   = $total_sales / 1.12;
+
+    // 5) VAT amount = total_sales − net_of_vat
+    $vat_amount   = $total_sales - $net_of_vat;
+
+    // 6) net after discounts (if you have any)
+    $net_sales    = $total_sales - $invoice->total_discount;
 @endphp
+
+
+
+
 
 <style>
 @media print {
@@ -205,37 +222,31 @@
 
     {{-- Job Table and totals --}}
     <table class="job-table">
-      <tr>
-        <th>Job Description</th>
-        <th>Remarks</th>
-        <th>Total Labor</th>
-        <th>{{ $labor_total ? '₱'.number_format($labor_total, 2) : '' }}</th>
-      </tr>
-      <tr>
-        <td></td>
-        <td></td>
-        <td>Total Sales</td>
-        <td>₱{{ number_format($total_sales, 2) }}</td>
-      </tr>
-      <tr>
-        <td></td>
-        <td>Net of vat</td>
-        <td></td>
-        <td>₱{{ number_format($net_of_vat, 2) }}</td>
-      </tr>
-      <tr>
-        <td></td>
-        <td>Vat Amount</td>
-        <td></td>
-        <td>₱{{ number_format($vat_amount, 2) }}</td>
-      </tr>
-      <tr>
-        <td></td>
-        <td></td>
-        <td>Net Sales</td>
-        <td>₱{{ number_format($net_sales, 2) }}</td>
-      </tr>
-    </table>
+  <!-- existing item/job rows here -->
+
+    <tr>
+  <td></td><td></td>
+  <td><strong>Total Sales</strong></td>
+  <td><strong>₱{{ number_format($total_sales,2) }}</strong></td>
+</tr>
+<tr>
+  <td></td><td>Net of VAT</td>
+  <td></td>
+  <td>₱{{ number_format($net_of_vat,2) }}</td>
+</tr>
+<tr>
+  <td></td><td>VAT (12%)</td>
+  <td></td>
+  <td>₱{{ number_format($vat_amount,2) }}</td>
+</tr>
+<tr>
+  <td></td><td></td>
+  <td><strong>Net Sales</strong></td>
+  <td><strong>₱{{ number_format($net_sales,2) }}</strong></td>
+</tr>
+
+</table>
+
 
     {{-- Client’s name centered --}}
     <div class="text-center mt-4">

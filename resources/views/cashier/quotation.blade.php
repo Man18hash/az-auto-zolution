@@ -453,34 +453,44 @@ $('#vehicle_id').on('change', function() {
 
   // TOTALS CALCULATION (unchanged)
   function recalc() {
-    let subtotal = 0, discount = 0;
+  let itemsTotal = 0;
+  let jobsTotal  = 0;
+  let discount   = 0;
 
-    $('#items-table tbody tr').each(function() {
-      const qty   = +$(this).find('[name$="[quantity]"]').val() || 0;
-      const orig  = +$(this).find('[name$="[original_price]"]').val() || 0;
-      const discP = +$(this).find('[name$="[discounted_price]"]').val() || orig;
-      const discV = qty * (orig - discP);
-      const lineT = qty * discP;
+  // 1) Sum up items & discounts
+  $('#items-table tbody tr').each(function() {
+    const $r    = $(this);
+    const q     = +$r.find('[name$="[quantity]"]').val() || 0;
+    const o     = +$r.find('[name$="[original_price]"]').val() || 0;
+    const dP    = +$r.find('[name$="[discounted_price]"]').val() || o;
+    const discV = q * (o - dP);
+    const lineT = q * dP;
 
-      $(this).find('.col-disc-val').text(discV.toFixed(2));
-      $(this).find('.col-line-total').text(lineT.toFixed(2));
+    discount   += discV;
+    itemsTotal += lineT;
 
-      subtotal += qty * orig;
-      discount += discV;
-    });
+    $r.find('.col-disc-val').text(discV.toFixed(2));
+    $r.find('.col-line-total').text(lineT.toFixed(2));
+  });
 
-    $('#jobs-table tbody tr').each(function() {
-      subtotal += +$(this).find('[name$="[total]"]').val() || 0;
-    });
+  // 2) Sum up jobs
+  $('#jobs-table tbody tr').each(function() {
+    jobsTotal += +$(this).find('[name$="[total]"]').val() || 0;
+  });
 
-    const vat   = (subtotal - discount) * 0.12;
-    const grand = subtotal - discount + vat;
+  // 3) Combined total before VAT
+  const grand = itemsTotal + jobsTotal;
 
-    $('[name=subtotal]').val(subtotal.toFixed(2));
-    $('[name=total_discount]').val(discount.toFixed(2));
-    $('[name=vat_amount]').val(vat.toFixed(2));
-    $('[name=grand_total]').val(grand.toFixed(2));
-  }
+  // 4) Reverse‐calc 12% VAT on the full amount:
+  //    net = grand ÷ 1.12  →  VAT = grand − net  →  VAT = grand * (0.12/1.12)
+  const vat = grand * (0.12 / 1.12);
+
+  // 5) Populate your fields
+  $('[name=subtotal]').val(grand.toFixed(2));        // items + jobs
+  $('[name=total_discount]').val(discount.toFixed(2));
+  $('[name=vat_amount]').val(vat.toFixed(2));        // now on entire invoice
+  $('[name=grand_total]').val(grand.toFixed(2));     // same as subtotal
+}
 
   /// ERROR CHECK (new—Jobs only)
 $('#quoteForm').on('submit', function(e) {
