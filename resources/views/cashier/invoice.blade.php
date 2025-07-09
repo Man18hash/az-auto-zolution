@@ -578,34 +578,47 @@ function addJobRow(data = null) {
 
 // TOTALS CALCULATION
 function recalc() {
-  let subtotal = 0, discount = 0;
+  let itemsTotal = 0;
+  let jobsTotal  = 0;
+  let discount   = 0;
 
+  // 1) Items
   $('#items-table tbody tr').each(function() {
-    const qty   = +$(this).find('[name$="[quantity]"]').val() || 0;
-    const orig  = +$(this).find('[name$="[original_price]"]').val() || 0;
-    const discP = +$(this).find('[name$="[discounted_price]"]').val() || orig;
-    const discV = qty * (orig - discP);
-    const lineT = qty * discP;
+    const $r   = $(this);
+    const q    = +$r.find('[name$="[quantity]"]').val() || 0;
+    const o    = +$r.find('[name$="[original_price]"]').val() || 0;
+    const dP   = +$r.find('[name$="[discounted_price]"]').val() || o;
+    const discV = q * (o - dP);
+    const lineT = q * dP;
 
-    $(this).find('.col-disc-val').text(discV.toFixed(2));
-    $(this).find('.col-line-total').text(lineT.toFixed(2));
+    discount   += discV;
+    itemsTotal += lineT;
 
-    subtotal += qty * orig;
-    discount += discV;
+    $r.find('.col-disc-val').text(discV.toFixed(2));
+    $r.find('.col-line-total').text(lineT.toFixed(2));
   });
 
+  // 2) Jobs
   $('#jobs-table tbody tr').each(function() {
-    subtotal += +$(this).find('[name$="[total]"]').val() || 0;
+    jobsTotal += +$(this).find('[name$="[total]"]').val() || 0;
   });
 
-  const vat   = (subtotal - discount) * 0.12;
-  const grand = subtotal - discount + vat;
+  // 3) Combined total (items + jobs)
+  const grand = itemsTotal + jobsTotal;
 
-  $('[name=subtotal]').val(subtotal.toFixed(2));
+  // 4) VAT on the full amount: reverse‐calculate 12% from grand total
+  //    net = grand ÷ 1.12;  VAT = grand – net  =>  VAT = grand * (0.12 / 1.12)
+  const vat = grand * (0.12 / 1.12);
+
+  // 5) Push values into the form
+  $('[name=subtotal]').val(grand.toFixed(2));        // items + jobs
+  $('[name=vat_amount]').val(vat.toFixed(2));        // now on full invoice
   $('[name=total_discount]').val(discount.toFixed(2));
-  $('[name=vat_amount]').val(vat.toFixed(2));
-  $('[name=grand_total]').val(grand.toFixed(2));
+  $('[name=grand_total]').val(grand.toFixed(2));     // same as subtotal
 }
+
+
+
 
   /// ERROR CHECK (new—Jobs only)
 $('#quoteForm').on('submit', function(e) {
