@@ -239,11 +239,19 @@
   <td></td>
   <td>₱{{ number_format($vat_amount,2) }}</td>
 </tr>
+@if($invoice->total_discount > 0)
+  <tr>
+    <td></td><td>Total Discount</td>
+    <td></td>
+    <td>₱{{ number_format($invoice->total_discount,2) }}</td>
+  </tr>
+@endif
 <tr>
   <td></td><td></td>
   <td><strong>Net Sales</strong></td>
   <td><strong>₱{{ number_format($net_sales,2) }}</strong></td>
 </tr>
+
 
 </table>
 
