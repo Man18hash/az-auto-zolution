@@ -220,7 +220,7 @@
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Total Discount</label>
-              <input type="number" step="0.01" name="total_discount" class="form-control" readonly>
+              <input type="number" step="0.1" name="total_discount" class="form-control">
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">VAT (12%)</label>
@@ -486,20 +486,22 @@ function addItemRow(data = null) {
 
   // — Select2 setup —
   const select2Data = [
-    { id:'', text:'-- search part --', price:0 },
-    ...parts.map(p => ({
-      id:    p.id,
-      text:  `${p.item_name} – Stock: ${p.quantity}`,
-      price: Number(p.selling)
-    }))
-  ];
-  const $sel = row.find('.part-select').select2({
-    data: select2Data,
-    placeholder: '-- search part --',
-    allowClear:  true,
-    width:       'resolve',
-    dropdownParent: $('#items-table')
-  });
+  { id: '', text: '-- search part --', price: 0 },
+  ...parts.map(p => ({
+    id: p.id,
+    // <-- NEW: prefix with [part_number]
+    text: `[${p.part_number}] ${p.item_name} – Stock: ${p.quantity}`,
+    price: Number(p.selling)
+  }))
+];
+
+const $sel = row.find('.part-select').select2({
+  data: select2Data,
+  placeholder: '-- search part --',
+  allowClear: true,
+  width: 'resolve',
+  dropdownParent: $('#invoiceModal .modal-content')
+});
 
   // pre-select on edit
   if (partId) {
@@ -578,24 +580,24 @@ function addJobRow(data = null) {
 
 // TOTALS CALCULATION
 function recalc() {
-  let itemsTotal = 0;
-  let jobsTotal  = 0;
-  let discount   = 0;
+  let itemsTotal     = 0;
+  let jobsTotal      = 0;
+  let computedDisc   = 0;
 
-  // 1) Items
+  // 1) Items: sum totals & per-line discounts
   $('#items-table tbody tr').each(function() {
-    const $r   = $(this);
-    const q    = +$r.find('[name$="[quantity]"]').val() || 0;
-    const o    = +$r.find('[name$="[original_price]"]').val() || 0;
-    const dP   = +$r.find('[name$="[discounted_price]"]').val() || o;
-    const discV = q * (o - dP);
-    const lineT = q * dP;
+    const $r      = $(this);
+    const qty    = +$r.find('[name$="[quantity]"]').val() || 0;
+    const orig   = +$r.find('[name$="[original_price]"]').val() || 0;
+    const discP  = +$r.find('[name$="[discounted_price]"]').val() || orig;
+    const lineDisc = qty * (orig - discP);
 
-    discount   += discV;
-    itemsTotal += lineT;
+    itemsTotal   += qty * discP;
+    computedDisc += lineDisc;
 
-    $r.find('.col-disc-val').text(discV.toFixed(2));
-    $r.find('.col-line-total').text(lineT.toFixed(2));
+    // update line display
+    $r.find('.col-disc-val').text(lineDisc.toFixed(2));
+    $r.find('.col-line-total').text((qty * discP).toFixed(2));
   });
 
   // 2) Jobs
@@ -603,18 +605,27 @@ function recalc() {
     jobsTotal += +$(this).find('[name$="[total]"]').val() || 0;
   });
 
-  // 3) Combined total (items + jobs)
-  const grand = itemsTotal + jobsTotal;
+  // 3) Raw subtotal (before any discount)
+  const rawSubtotal = itemsTotal + jobsTotal + computedDisc;
 
-  // 4) VAT on the full amount: reverse‐calculate 12% from grand total
-  //    net = grand ÷ 1.12;  VAT = grand – net  =>  VAT = grand * (0.12 / 1.12)
-  const vat = grand * (0.12 / 1.12);
+  // 4) Which discount to use?
+  //    if user has typed a bottom discount, use that;
+  //    otherwise fall back to computedDisc.
+  const manual = parseFloat($('[name="total_discount"]').val());
+  const discount = !isNaN(manual) ? manual : computedDisc;
 
-  // 5) Push values into the form
-  $('[name=subtotal]').val(grand.toFixed(2));        // items + jobs
-  $('[name=vat_amount]').val(vat.toFixed(2));        // now on full invoice
-  $('[name=total_discount]').val(discount.toFixed(2));
-  $('[name=grand_total]').val(grand.toFixed(2));     // same as subtotal
+  // 5) Net after discount, VAT inclusive
+  const netAfterDisc = rawSubtotal - discount;
+  const vatAmount    = netAfterDisc * (0.12 / 1.12);
+
+  // 6) Push values back
+  $('[name="subtotal"]').val(rawSubtotal.toFixed(2));
+  // only overwrite the field if user hasn't typed their own value
+  if (isNaN(manual)) {
+    $('[name="total_discount"]').val(computedDisc.toFixed(2));
+  }
+  $('[name="vat_amount"]').val(vatAmount.toFixed(2));
+  $('[name="grand_total"]').val(netAfterDisc.toFixed(2));
 }
 
 
@@ -697,6 +708,9 @@ $(function() {
   @endif
 
   recalc();
+  // whenever bottom discount changes, re-run recalc()
+$('[name="total_discount"]').on('input', recalc);
+
 });
 
 </script>
