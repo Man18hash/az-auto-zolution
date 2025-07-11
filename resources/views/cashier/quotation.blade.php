@@ -258,6 +258,7 @@
   const clients = @json($clients);  // Assuming clients data is available
   const vehicles = @json($vehicles);  // Assuming vehicles data is available
 
+
  // Client and Vehicle Search
   $('#client_id').select2({
     data: clients.map(client => ({ id: client.id, text: client.name })),
@@ -269,6 +270,46 @@
     placeholder: '-- search vehicle --',
     allowClear: true
   });
+
+  
+  /// When a client is selected, fetch and populate client Address and Nubmer
+  // 1) Track manual overrides
+$('[name="number"], [name="address"]')
+  .data('manual', false)
+  .on('input', function(){
+    $(this).data('manual', true);
+  });
+
+// 2) Define a helper to fill number & address
+function autofillContact() {
+  const clientId = $('#client_id').val();
+  const client   = clients.find(c => c.id == clientId);
+  if (!client) return;
+
+  const $num  = $('[name="number"]');
+  const $addr = $('[name="address"]');
+
+  // use client.phone (not phone_number or number)
+  if (!$num.data('manual'))  $num.val(client.phone || '');
+  if (!$addr.data('manual')) $addr.val(client.address  || '');
+}
+
+// 3) Initialize Select2 first...
+$('#client_id').select2({
+  data: clients.map(c => ({ id: c.id, text: c.name })),
+  placeholder: '-- search client --',
+  allowClear: true
+});
+
+// 4) Then hook up our autofill
+$('#client_id')
+  .on('select2:select', autofillContact)   // fires when you pick from the dropdown
+  .on('change',           autofillContact); // fallback if you ever change via code
+
+// 5) Finally run it once on page-load in case you're editing an existing record
+$(document).ready(autofillContact);
+
+
 
   /// When a client is selected, fetch and populate vehicle options with data attributes
 $('#client_id').on('change', function() {
@@ -368,6 +409,36 @@ $('#vehicle_id').on('change', function() {
       row.find('[name$="[original_price]"]').val(sel.price.toFixed(2));
     }
   }
+// ─── Restore saved manual entry ───
+if (data?.manual_part_name) {
+  // 1) open the manual popup
+  row.find('.manual-toggle').click();
+
+  // 2) populate all four manual fields
+  row.find('[name$="[manual_part_name]"]'        ).val(data.manual_part_name);
+  row.find('[name$="[manual_serial_number]"]'    ).val(data.manual_serial_number);    // ← new!
+  row.find('[name$="[manual_acquisition_price]"]').val(data.manual_acquisition_price);
+  row.find('[name$="[manual_selling_price]"]'    ).val(data.manual_selling_price);
+
+  // 3) insert a fake <option> so Select2 shows the label
+  const manualOption = new Option(
+    data.manual_part_name,
+    '',   // empty value so DB gets null
+    true, // defaultSelected
+    true  // selected
+  );
+  $partSelect.append(manualOption).trigger('change');
+
+  // 4) trigger your save-manual handler to copy prices & qty
+  row.find('.save-manual').click();
+
+  // 5) force-update the Select2 label (optional, but bullet-proof)
+  $partSelect
+    .next('.select2-container')
+    .find('.select2-selection__rendered')
+    .text(data.manual_part_name);
+}
+
 
   // inventory selection → pricing
   $partSelect.on('select2:select', e=>{
@@ -396,6 +467,7 @@ $('#vehicle_id').on('change', function() {
     row.find('.manual-fields').addClass('d-none');
     row.find('.input-group').removeClass('d-none');
   });
+<<<<<<< HEAD
   row.find('.save-manual').on('click', ()=>{
     const sell = parseFloat(row.find('[name$="[manual_selling_price]"]').val())||0;
     row.find('[name$="[original_price]"]').val(sell.toFixed(2));
@@ -404,6 +476,29 @@ $('#vehicle_id').on('change', function() {
     row.find('.manual-fields').addClass('d-none');
     row.find('.input-group').removeClass('d-none');
   });
+=======
+
+ // save manual entry POPULATE
+ row.find('.save-manual').on('click', ()=>{
+  const sell = parseFloat(row.find('[name$="[manual_selling_price]"]').val())||0;
+  // 1) write prices & qty back to row
+  row.find('[name$="[original_price]"]').val(sell.toFixed(2));
+  row.find('[name$="[discounted_price]"]').val(sell.toFixed(2));
+  row.find('[name$="[quantity]"]').val(1);
+
+  // 2) pull the manual name
+  const manualName = row.find('[name$="[manual_part_name]"]').val() || '';
+
+  // 3) update the Select2 displayed label
+  const $select2 = row.find('.part-select').next('.select2-container');
+  $select2.find('.select2-selection__rendered').text(manualName);
+
+  // 4) hide manual form and show the “dropdown” again
+  recalc();
+  row.find('.manual-fields').addClass('d-none');
+  row.find('.input-group').removeClass('d-none');
+});
+>>>>>>> f672cc7e0c0cd7694ae824b2cbf7d12e47d400d2
 
   $('#items-table tbody').append(row);
   recalc();
@@ -484,6 +579,7 @@ $('#quoteForm').on('submit', function(e) {
   $('#add-item').on('click', () => addItemRow());
   $('#add-job').on('click', () => addJobRow());
   $(function() {
+<<<<<<< HEAD
     @if(isset($invoice) && $invoice->items && $invoice->items->count())
       @foreach($invoice->items as $item)
         addItemRow({
@@ -496,6 +592,25 @@ $('#quoteForm').on('submit', function(e) {
     @else
       addItemRow();
     @endif
+=======
+ @if(isset($invoice) && $invoice->items && $invoice->items->count())
+  @foreach($invoice->items as $item)
+    addItemRow({
+      part_id:                  '{{ $item->part_id }}',
+      quantity:                 '{{ $item->quantity }}',
+      original_price:           '{{ $item->original_price }}',
+      discounted_price:         '{{ $item->discounted_price }}',
+      manual_part_name:         '{{ $item->manual_part_name  ?? '' }}',
+      manual_serial_number:     '{{ $item->manual_serial_number ?? '' }}',
+      manual_acquisition_price: '{{ $item->manual_acquisition_price ?? '' }}',
+      manual_selling_price:     '{{ $item->manual_selling_price ?? '' }}'
+    });
+  @endforeach
+@else
+  addItemRow();
+@endif
+
+>>>>>>> f672cc7e0c0cd7694ae824b2cbf7d12e47d400d2
 
     @if(isset($invoice) && $invoice->jobs && $invoice->jobs->count())
       @foreach($invoice->jobs as $job)
