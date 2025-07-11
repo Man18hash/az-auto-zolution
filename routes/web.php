@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\DiscountReportController;
 use App\Http\Controllers\Cashier\HomeController;
 use App\Http\Controllers\Admin\IncomeAnalysisReportController;
 use App\Http\Controllers\Admin\EmailEmployeeController;
+use App\Http\Controllers\Admin\InvoiceHistoryController;
 
 
 
@@ -44,6 +45,9 @@ Route::middleware('guest')->group(function () {
     Route::post('login', [LoginController::class, 'login']);
 });
 
+
+
+
 Route::post('logout', [LoginController::class, 'logout'])
      ->middleware('auth')
      ->name('logout');
@@ -60,6 +64,27 @@ Route::middleware(['auth','role:admin'])
 
          // Admin Dashboard
          Route::view('home', 'admin.home')->name('home');
+          Route::get('invoices', [\App\Http\Controllers\Admin\InvoiceHistoryController::class,'index'])
+               ->name('invoices');
+
+               // Inventory page
+          Route::get('inventory', [\App\Http\Controllers\Admin\InventoryController::class,'index'])
+               ->name('inventory');
+
+          // if you want store/update/delete via admin too, add:
+          Route::post('inventory',        [\App\Http\Controllers\Admin\InventoryController::class,'store'])->name('inventory.store');
+          Route::put('inventory/{inventory}',    [\App\Http\Controllers\Admin\InventoryController::class,'update'])->name('inventory.update');
+          Route::delete('inventory/{inventory}', [\App\Http\Controllers\Admin\InventoryController::class,'destroy'])->name('inventory.destroy');
+
+
+
+      // Invoice History
+          Route::get('invoices', [\App\Http\Controllers\Admin\InvoiceHistoryController::class,'index'])
+               ->name('invoices');
+          Route::get('invoices/{id}', [\App\Http\Controllers\Admin\InvoiceHistoryController::class,'show'])
+               ->name('invoices.view');
+          Route::delete('invoices/{id}', [\App\Http\Controllers\Admin\InvoiceHistoryController::class,'destroy'])
+               ->name('invoices.destroy');
 
          // Sales Report
          Route::get('sales-report', [SalesReportController::class, 'index'])->name('sales-report');
@@ -83,7 +108,8 @@ Route::middleware(['auth','role:admin'])
         Route::put('technician/{id}', [EmailEmployeeController::class, 'updateTechnician'])->name('technician.update');
         Route::delete('user/{id}', [EmailEmployeeController::class, 'destroyUser'])->name('user.delete');
         Route::delete('technician/{id}', [EmailEmployeeController::class, 'destroyTechnician'])->name('technician.delete');
-
+     
+        
      });
 /*
 |--------------------------------------------------------------------------
