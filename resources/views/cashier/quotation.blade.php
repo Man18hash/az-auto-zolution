@@ -127,12 +127,11 @@
       <thead>
         <tr>
           <th style="min-width:250px;">Item</th>
-          <th>Qty</th>
-          <th>Orig ₱</th>
-          <th>Disc ₱</th>
-          <th>Disc Val</th>
-          <th>Total ₱</th>
-          <th></th>
+<th>Qty</th>
+<th>Price ₱</th>
+<th>Total ₱</th>
+<th></th>
+
         </tr>
       </thead>
       <tbody></tbody>
@@ -174,7 +173,8 @@
       </div>
       <div class="col-md-3">
         <label class="form-label">Total Discount</label>
-        <input type="number" step="0.01" name="total_discount" class="form-control" readonly>
+        <input type="number" step="0.01" name="total_discount" class="form-control">
+
       </div>
       <div class="col-md-3">
         <label class="form-label">VAT (12%)</label>
@@ -355,49 +355,42 @@ $('#vehicle_id').on('change', function() {
   const partId   = data && data.part_id             ? data.part_id             : '';
   const qty      = data && data.quantity            ? data.quantity            : 1;
   const orig     = data && data.original_price !== undefined ? data.original_price : '';
-  const disc     = data && data.discounted_price!==undefined ? data.discounted_price: '';
-  const discVal  = (orig && disc && qty) ? ((orig - disc)*qty).toFixed(2) : '0.00';
-  const lineTotal= (disc && qty)         ? (disc * qty).toFixed(2)    : '0.00';
+  const lineTotal= (orig && qty) ? (orig * qty).toFixed(2) : '0.00';
 
-  const row = $(`<tr>
-    <td>
-      <div class="input-group">
-        <select name="items[${idx}][part_id]"
-                class="form-select form-select-sm part-select"
-                style="width:100%">
-          <option value="">-- search part --</option>
-        </select>
-        <button type="button" class="btn btn-warning btn-sm manual-toggle">
-          Manual
-        </button>
+  const row = $(`
+<tr>
+  <td>
+    <div class="input-group">
+      <select name="items[${idx}][part_id]"
+              class="form-select form-select-sm part-select"
+              style="width:100%">
+        <option value="">-- search part --</option>
+      </select>
+      <button type="button" class="btn btn-warning btn-sm manual-toggle">
+        Manual
+      </button>
+    </div>
+    <div class="manual-fields mt-2 d-none">
+      <input type="text" name="items[${idx}][manual_part_name]" class="form-control form-control-sm mb-1" placeholder="Part Name">
+      <input type="text" name="items[${idx}][manual_serial_number]" class="form-control form-control-sm mb-1" placeholder="Serial #">
+      <input type="number" name="items[${idx}][manual_acquisition_price]" class="form-control form-control-sm mb-1" placeholder="Acquisition ₱">
+      <input type="number" name="items[${idx}][manual_selling_price]" class="form-control form-control-sm mb-1" placeholder="Selling ₱">
+      <div class="d-flex gap-2">
+        <button type="button" class="btn btn-sm btn-secondary cancel-manual">Cancel</button>
+        <button type="button" class="btn btn-sm btn-success save-manual">Save</button>
       </div>
-      <div class="manual-fields mt-2 d-none">
-        <input type="text"   name="items[${idx}][manual_part_name]"         class="form-control form-control-sm mb-1" placeholder="Part Name">
-        <input type="text"   name="items[${idx}][manual_serial_number]"     class="form-control form-control-sm mb-1" placeholder="Serial #">
-        <input type="number" name="items[${idx}][manual_acquisition_price]" class="form-control form-control-sm mb-1" placeholder="Acquisition ₱">
-        <input type="number" name="items[${idx}][manual_selling_price]"     class="form-control form-control-sm mb-1" placeholder="Selling ₱">
-        <div class="d-flex gap-2">
-          <button type="button" class="btn btn-sm btn-secondary cancel-manual">Cancel</button>
-          <button type="button" class="btn btn-sm btn-success save-manual">Save</button>
-        </div>
-      </div>
-    </td>
-    <td><input name="items[${idx}][quantity]"        type="number" class="form-control form-control-sm" value="${qty}"></td>
-    <td><input name="items[${idx}][original_price]"  type="number" step="0.01" readonly class="form-control form-control-sm" value="${orig}"></td>
-    <td><input name="items[${idx}][discounted_price]"type="number" step="0.01" class="form-control form-control-sm" value="${disc}"></td>
-    <td class="col-disc-val">${discVal}</td>
-    <td class="col-line-total">${lineTotal}</td>
-    <td><button type="button" class="btn btn-sm btn-danger remove-btn">✕</button></td>
-  </tr>`);
+    </div>
+  </td>
+  <td><input name="items[${idx}][quantity]" type="number" class="form-control form-control-sm" value="${qty}"></td>
+  <td><input name="items[${idx}][original_price]" type="number" step="0.01" class="form-control form-control-sm" value="${orig}"></td>
+  <td class="col-line-total">${lineTotal}</td>
+  <td><button type="button" class="btn btn-sm btn-danger remove-btn">✕</button></td>
+</tr>`);
 
-  // ─── select2 setup ───
+  // select2
   const select2Data = [
     { id:'', text:'-- search part --', price:0 },
-    ...parts.map(p=>({
-      id: p.id,
-      text:`${p.item_name} - Stock: ${p.quantity}`,
-      price: Number(p.selling)
-    }))
+    ...parts.map(p=>({ id:p.id, text:`${p.item_name} - Stock: ${p.quantity}`, price:Number(p.selling) }))
   ];
   const $partSelect = row.find('.part-select');
   $partSelect.select2({
@@ -408,13 +401,12 @@ $('#vehicle_id').on('change', function() {
     dropdownParent: $('#items-table')
   });
 
-  // preselect on edit
+  // preselect
   if(partId) {
     $partSelect.val(partId).trigger('change');
     const sel = select2Data.find(o=>o.id==partId);
     if(sel && sel.price) {
       row.find('[name$="[original_price]"]').val(sel.price.toFixed(2));
-      row.find('[name$="[discounted_price]"]').val(sel.price.toFixed(2));
     }
   }
 // ─── Restore saved manual entry ───
@@ -452,34 +444,39 @@ if (data?.manual_part_name) {
   $partSelect.on('select2:select', e=>{
     const price = e.params.data.price||0;
     row.find('[name$="[original_price]"]').val(price.toFixed(2));
-    row.find('[name$="[discounted_price]"]').val(price.toFixed(2));
     row.find('[name$="[quantity]"]').val(1);
     recalc();
   });
   $partSelect.on('select2:clear', ()=>{
-    row.find('[name$="[original_price]"], [name$="[discounted_price]"]').val('');
+    row.find('[name$="[original_price]"]').val('');
     recalc();
   });
 
-  // qty/discount inputs → recalc
-  row.find('[name$="[quantity]"], [name$="[discounted_price]"]').on('input', recalc);
+  // qty/price changes → recalc
+  row.find('[name$="[quantity]"], [name$="[original_price]"]').on('input', recalc);
 
   // remove row
   row.find('.remove-btn').on('click', ()=>{ row.remove(); recalc(); });
 
-  // ─── Manual popup handlers ───
-
-  // show manual form
+  // manual
   row.find('.manual-toggle').on('click', ()=>{
     row.find('.manual-fields').removeClass('d-none');
     row.find('.input-group').addClass('d-none');
   });
-
-  // cancel manual
   row.find('.cancel-manual').on('click', ()=>{
     row.find('.manual-fields').addClass('d-none');
     row.find('.input-group').removeClass('d-none');
   });
+<<<<<<< HEAD
+  row.find('.save-manual').on('click', ()=>{
+    const sell = parseFloat(row.find('[name$="[manual_selling_price]"]').val())||0;
+    row.find('[name$="[original_price]"]').val(sell.toFixed(2));
+    row.find('[name$="[quantity]"]').val(1);
+    recalc();
+    row.find('.manual-fields').addClass('d-none');
+    row.find('.input-group').removeClass('d-none');
+  });
+=======
 
  // save manual entry POPULATE
  row.find('.save-manual').on('click', ()=>{
@@ -501,11 +498,12 @@ if (data?.manual_part_name) {
   row.find('.manual-fields').addClass('d-none');
   row.find('.input-group').removeClass('d-none');
 });
+>>>>>>> f672cc7e0c0cd7694ae824b2cbf7d12e47d400d2
 
-  // append row & final recalc
   $('#items-table tbody').append(row);
   recalc();
 }
+
 
   // JOB ROW HANDLING (unchanged)
   function addJobRow(data = null) {
@@ -533,45 +531,35 @@ if (data?.manual_part_name) {
   }
 
   // TOTALS CALCULATION (unchanged)
-  function recalc() {
+function recalc() {
   let itemsTotal = 0;
   let jobsTotal  = 0;
-  let discount   = 0;
 
-  // 1) Sum up items & discounts
+  // Sum up items
   $('#items-table tbody tr').each(function() {
-    const $r    = $(this);
-    const q     = +$r.find('[name$="[quantity]"]').val() || 0;
-    const o     = +$r.find('[name$="[original_price]"]').val() || 0;
-    const dP    = +$r.find('[name$="[discounted_price]"]').val() || o;
-    const discV = q * (o - dP);
-    const lineT = q * dP;
-
-    discount   += discV;
+    const $r = $(this);
+    const q  = +$r.find('[name$="[quantity]"]').val() || 0;
+    const p  = +$r.find('[name$="[original_price]"]').val() || 0;
+    const lineT = q * p;
     itemsTotal += lineT;
-
-    $r.find('.col-disc-val').text(discV.toFixed(2));
     $r.find('.col-line-total').text(lineT.toFixed(2));
   });
 
-  // 2) Sum up jobs
+  // Sum up jobs
   $('#jobs-table tbody tr').each(function() {
     jobsTotal += +$(this).find('[name$="[total]"]').val() || 0;
   });
 
-  // 3) Combined total before VAT
-  const grand = itemsTotal + jobsTotal;
+  const subtotal = itemsTotal + jobsTotal;
+  const discount = parseFloat($('[name="total_discount"]').val()) || 0;
+  const grand    = subtotal - discount;
+  const vat      = grand * (0.12 / 1.12);
 
-  // 4) Reverse‐calc 12% VAT on the full amount:
-  //    net = grand ÷ 1.12  →  VAT = grand − net  →  VAT = grand * (0.12/1.12)
-  const vat = grand * (0.12 / 1.12);
-
-  // 5) Populate your fields
-  $('[name=subtotal]').val(grand.toFixed(2));        // items + jobs
-  $('[name=total_discount]').val(discount.toFixed(2));
-  $('[name=vat_amount]').val(vat.toFixed(2));        // now on entire invoice
-  $('[name=grand_total]').val(grand.toFixed(2));     // same as subtotal
+  $('[name=subtotal]').val(subtotal.toFixed(2));
+  $('[name=vat_amount]').val(vat.toFixed(2));
+  $('[name=grand_total]').val(grand.toFixed(2));
 }
+
 
   /// ERROR CHECK (new—Jobs only)
 $('#quoteForm').on('submit', function(e) {
@@ -591,6 +579,20 @@ $('#quoteForm').on('submit', function(e) {
   $('#add-item').on('click', () => addItemRow());
   $('#add-job').on('click', () => addJobRow());
   $(function() {
+<<<<<<< HEAD
+    @if(isset($invoice) && $invoice->items && $invoice->items->count())
+      @foreach($invoice->items as $item)
+        addItemRow({
+          part_id: '{{ $item->part_id }}',
+          quantity: '{{ $item->quantity }}',
+          original_price: '{{ $item->original_price }}',
+          
+        });
+      @endforeach
+    @else
+      addItemRow();
+    @endif
+=======
  @if(isset($invoice) && $invoice->items && $invoice->items->count())
   @foreach($invoice->items as $item)
     addItemRow({
@@ -608,6 +610,7 @@ $('#quoteForm').on('submit', function(e) {
   addItemRow();
 @endif
 
+>>>>>>> f672cc7e0c0cd7694ae824b2cbf7d12e47d400d2
 
     @if(isset($invoice) && $invoice->jobs && $invoice->jobs->count())
       @foreach($invoice->jobs as $job)

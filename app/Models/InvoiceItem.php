@@ -65,7 +65,7 @@ class InvoiceItem extends Model
     public function getEffectiveSellingPriceAttribute(): float
     {
         if ($this->part_id) {
-            return $this->discounted_price ?? $this->original_price;
+            return (float)($this->discounted_price ?? $this->original_price);
         }
 
         return $this->manual_selling_price ?? 0;
