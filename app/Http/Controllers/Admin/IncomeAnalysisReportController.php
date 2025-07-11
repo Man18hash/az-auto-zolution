@@ -4,92 +4,153 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use App\Models\Invoice;
-use App\Models\Expense;
-use App\Models\ARCollection;
-use App\Models\CashDeposit;
 use Carbon\Carbon;
-use Carbon\CarbonPeriod;
+use App\Models\Invoice;
+use App\Models\ARCollection;
+use App\Models\Expense;
+use App\Models\CashDeposit;
 
 class IncomeAnalysisReportController extends Controller
 {
     public function index(Request $request)
     {
-        $startDate = $request->input(
-            'start_date',
-            Carbon::now()->startOfMonth()->toDateString()
-        );
-        $endDate   = $request->input(
-            'end_date',
-            Carbon::now()->endOfMonth()->toDateString()
-        );
+        $periodType = $request->input('period', 'daily');
+        $now = Carbon::now();
 
-        // --- your original data pulls ---
-        $invoices    = Invoice::where('status','paid')
-            ->whereBetween('created_at', [
-                Carbon::parse($startDate)->startOfDay(),
-                Carbon::parse($endDate)->endOfDay()
-            ])->get();
-
-        $expenses    = Expense::whereBetween('date', [$startDate, $endDate])->get();
-        $collections = ARCollection::whereBetween('date', [$startDate, $endDate])->get();
-        $deposits    = CashDeposit::whereBetween('date', [$startDate, $endDate])->get();
-
-        // --- your original aggregates ---
-        $totalSales    = $invoices->sum(function($inv){
-            return $inv->items->sum('line_total')
-                 + $inv->jobs->sum('total');
-        });
-        $totalAR        = $collections->sum('amount');
-        $totalExpenses  = $expenses->sum('amount');
-        $totalDeposits  = $deposits->sum('amount');
-        $netIncome      = ($totalSales + $totalAR + $totalDeposits) - $totalExpenses;
-
-        // --- NEW: build daily labels and series for charts ---
-        $period = CarbonPeriod::create($startDate, $endDate);
-
-        $labels         = [];
-        $salesSeries    = [];
-        $arSeries       = [];
-        $depositSeries  = [];
-        $expenseSeries  = [];
-
-        foreach ($period as $day) {
-            $d = $day->format('Y-m-d');
-            $labels[] = $d;
-
-            // daily paid‐invoice sales
-            $dailyInv = Invoice::with('items','jobs')
-                ->where('status','paid')
-                ->whereDate('created_at', $d)
-                ->get();
-
-            $dailySales = $dailyInv->sum(function($inv){
-                return $inv->items->sum('line_total')
-                     + $inv->jobs->sum('total');
-            });
-            $salesSeries[]   = $dailySales;
-
-            // daily A/R, deposits, expenses
-            $arSeries[]      = ARCollection::whereDate('date',$d)->sum('amount');
-            $depositSeries[] = CashDeposit  ::whereDate('date',$d)->sum('amount');
-            $expenseSeries[] = Expense      ::whereDate('date',$d)->sum('amount');
+        // 1) Determine buckets
+        switch ($periodType) {
+            case 'weekly':
+                $start = $now->copy()->subDays(6)->startOfDay();
+                $end   = $now->copy()->endOfDay();
+                $increment = fn($dt)=> $dt->addDay();
+                $format    = 'M d';
+                break;
+            case 'monthly':
+                $start = $now->copy()->startOfMonth();
+                $end   = $now->copy()->endOfMonth();
+                $increment = fn($dt)=> $dt->addDay();
+                $format    = 'M d';
+                break;
+            case 'yearly':
+                $start = $now->copy()->startOfYear();
+                $end   = $now->copy()->endOfYear();
+                $increment = fn($dt)=> $dt->addMonth();
+                $format    = 'M Y';
+                break;
+            case 'daily':
+            default:
+                $periodType = 'daily';
+                $start = $now->copy()->startOfDay();
+                $end   = $now->copy()->endOfDay();
+                $increment = fn($dt)=> $dt->addHour();
+                $format    = 'H:00';
         }
 
-        // pass everything to the view
+        // 2) Build bucket boundaries + labels
+        $buckets    = [];
+        $labels     = [];
+        $cursor     = $start->copy();
+        while ($cursor->lte($end)) {
+            $buckets[] = $cursor->copy();
+            $labels[]  = $cursor->format($format);
+            $increment($cursor);
+        }
+        $bucketEnds = [];
+        foreach ($buckets as $b) {
+            $e = $b->copy();
+            $increment($e);
+            $bucketEnds[] = $e;
+        }
+
+        // 3) Initialize series arrays
+        $count = count($buckets);
+        $series = [
+            'Sales'    => array_fill(0, $count, 0),
+            'A/R'      => array_fill(0, $count, 0),
+            'Expenses' => array_fill(0, $count, 0),
+            'Deposits' => array_fill(0, $count, 0),
+        ];
+
+        // 4) Load data
+        $invoices = Invoice::with('items','jobs')
+            ->where('status','paid')
+            ->whereBetween('created_at', [$start, $end])
+            ->get();
+        $ars      = ARCollection::whereBetween('date',    [$start->toDateString(), $end->toDateString()])->get();
+        $expenses = Expense::whereBetween('date',        [$start->toDateString(), $end->toDateString()])->get();
+        $deposits = CashDeposit::whereBetween('date',    [$start->toDateString(), $end->toDateString()])->get();
+
+        // 5) Bucket sums
+        foreach ($invoices as $inv) {
+            $ts = $inv->created_at;
+            foreach ($buckets as $i => $bstart) {
+                if ($ts->gte($bstart) && $ts->lt($bucketEnds[$i])) {
+                    $series['Sales'][$i] += $inv->items->sum('line_total') + $inv->jobs->sum('total');
+                    break;
+                }
+            }
+        }
+        foreach ($ars as $a) {
+            $ts = Carbon::parse($a->date);
+            foreach ($buckets as $i => $bstart) {
+                if ($ts->gte($bstart) && $ts->lt($bucketEnds[$i])) {
+                    $series['A/R'][$i] += $a->amount;
+                    break;
+                }
+            }
+        }
+        foreach ($expenses as $e) {
+            $ts = Carbon::parse($e->date);
+            foreach ($buckets as $i => $bstart) {
+                if ($ts->gte($bstart) && $ts->lt($bucketEnds[$i])) {
+                    $series['Expenses'][$i] += $e->amount;
+                    break;
+                }
+            }
+        }
+        foreach ($deposits as $d) {
+            $ts = Carbon::parse($d->date);
+            foreach ($buckets as $i => $bstart) {
+                if ($ts->gte($bstart) && $ts->lt($bucketEnds[$i])) {
+                    $series['Deposits'][$i] += $d->amount;
+                    break;
+                }
+            }
+        }
+
+        // 6) Net Income series
+        $net = [];
+        for ($i=0; $i<$count; $i++) {
+            $net[] = $series['Sales'][$i]
+                   + $series['A/R'][$i]
+                   - $series['Expenses'][$i]
+                   - $series['Deposits'][$i];
+        }
+        $series['Net Income'] = $net;
+
+        // 7) Totals (with guard)
+        $totals = [];
+        foreach ($series as $k => $arr) {
+            $totals[$k] = is_array($arr)
+                ? array_sum($arr)
+                : $arr;
+        }
+
+        // 8) Discounts + payment split
+        $totalDiscount    = $invoices->sum('total_discount');
+        $cashPayments     = $invoices
+            ->filter(fn($inv)=> $inv->payment_type==='cash')
+            ->sum(fn($inv)=> $inv->items->sum('line_total') + $inv->jobs->sum('total'));
+        $nonCashPayments  = $totals['Sales'] - $cashPayments;
+
         return view('admin.income-analysis-report', [
+            'periodType'     => $periodType,
             'labels'         => $labels,
-            'salesSeries'    => $salesSeries,
-            'arSeries'       => $arSeries,
-            'depositSeries'  => $depositSeries,
-            'expenseSeries'  => $expenseSeries,
-            'totalSales'     => $totalSales,
-            'totalAR'        => $totalAR,
-            'totalExpenses'  => $totalExpenses,
-            'totalDeposits'  => $totalDeposits,
-            'netIncome'      => $netIncome,
-            'startDate'      => $startDate,
-            'endDate'        => $endDate,
+            'series'         => $series,
+            'totals'         => $totals,
+            'totalDiscount'  => $totalDiscount,
+            'cashPayments'   => $cashPayments,
+            'nonCashPayments'=> $nonCashPayments,
         ]);
     }
 }

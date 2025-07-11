@@ -38,11 +38,12 @@ class GrossSalesReportController extends Controller
 
         $report = [];
         $grand  = [
-            'sales'    => 0,
-            'ar'       => 0,
-            'expenses' => 0,
-            'deposits' => 0,
-            'gross'    => 0,
+            'sales'     => 0,
+            'ar'        => 0,
+            'expenses'  => 0,
+            'deposits'  => 0,
+            'discounts' => 0,
+            'gross'     => 0,
         ];
 
         foreach ($dates as $date) {
@@ -57,26 +58,33 @@ class GrossSalesReportController extends Controller
             $totalAR       = $arForDay->sum('amount');
             $totalExpenses = $expensesForDay->sum('amount');
             $totalDeposits = $depositsForDay->sum('amount');
-            $grossTotal    = ($totalSales + $totalAR) - ($totalExpenses + $totalDeposits);
+            // sum all invoice‐level discounts for this day
+            $totalDiscounts = $salesForDay->sum('discount');
+            // gross = (sales + AR) - (expenses + deposits) - discounts
+            $grossTotal    = ($totalSales + $totalAR)
+                           - ($totalExpenses + $totalDeposits)
+                           - $totalDiscounts;
 
             // accumulate grand
-            $grand['sales']    += $totalSales;
-            $grand['ar']       += $totalAR;
-            $grand['expenses'] += $totalExpenses;
-            $grand['deposits'] += $totalDeposits;
-            $grand['gross']    += $grossTotal;
+            $grand['sales']     += $totalSales;
+            $grand['ar']        += $totalAR;
+            $grand['expenses']  += $totalExpenses;
+            $grand['deposits']  += $totalDeposits;
+            $grand['discounts'] += $totalDiscounts;
+            $grand['gross']     += $grossTotal;
 
             $report[] = [
-                'date'           => $date,
-                'sales'          => $salesForDay,
-                'total_sales'    => $totalSales,
-                'ar'             => $arForDay,
-                'total_ar'       => $totalAR,
-                'expenses'       => $expensesForDay,
-                'total_expenses' => $totalExpenses,
-                'deposits'       => $depositsForDay,
-                'total_deposits' => $totalDeposits,
-                'gross'          => $grossTotal,
+                'date'            => $date,
+                'sales'           => $salesForDay,
+                'total_sales'     => $totalSales,
+                'ar'              => $arForDay,
+                'total_ar'        => $totalAR,
+                'expenses'        => $expensesForDay,
+                'total_expenses'  => $totalExpenses,
+                'deposits'        => $depositsForDay,
+                'total_deposits'  => $totalDeposits,
+                'total_discounts' => $totalDiscounts,
+                'gross'           => $grossTotal,
             ];
         }
 
@@ -101,6 +109,7 @@ class GrossSalesReportController extends Controller
         foreach ($data['sales'] as $sale) {
             $allItems->push([
                 'date'                 => $sale['date'],
+                'invoice_no'           => $sale['invoice_no'],
                 'customer'             => $sale['customer'],
                 'vehicle_manufacturer' => $sale['vehicle_manufacturer'] ?? '',
                 'vehicle_model'        => $sale['vehicle_model']        ?? '',
@@ -109,6 +118,9 @@ class GrossSalesReportController extends Controller
                 'description'          => $sale['service'],
                 'quantity'             => $sale['quantity'],
                 'amount'               => $sale['amount'],
+                'discount'             => $sale['discount'],
+                'payment_type'         => $sale['payment_type'],
+                'payment'              => $sale['payment'],
                 'remarks'              => $sale['remarks'],
                 'type'                 => 'Sales',
             ]);
@@ -118,15 +130,11 @@ class GrossSalesReportController extends Controller
         foreach ($data['arCollections'] as $ar) {
             $allItems->push([
                 'date'        => Carbon::parse($ar->date)->format('Y-m-d'),
+                'invoice_no'  => null,
                 'customer'    => 'A/R Collections',
-                'vehicle_manufacturer' => '',
-                'vehicle_model'        => '',
-                'vehicle_year'         => '',
-                'vehicle_plate'        => '',
                 'description' => $ar->description ?? '-',
                 'quantity'    => '',
                 'amount'      => $ar->amount,
-                'remarks'     => '',
                 'type'        => 'A/R',
             ]);
         }
@@ -135,15 +143,11 @@ class GrossSalesReportController extends Controller
         foreach ($data['expenses'] as $ex) {
             $allItems->push([
                 'date'        => Carbon::parse($ex->date)->format('Y-m-d'),
+                'invoice_no'  => null,
                 'customer'    => 'Expenses',
-                'vehicle_manufacturer' => '',
-                'vehicle_model'        => '',
-                'vehicle_year'         => '',
-                'vehicle_plate'        => '',
                 'description' => $ex->title ?? '-',
                 'quantity'    => '',
                 'amount'      => $ex->amount,
-                'remarks'     => '',
                 'type'        => 'Expense',
             ]);
         }
@@ -152,15 +156,11 @@ class GrossSalesReportController extends Controller
         foreach ($data['cashDeposits'] as $dep) {
             $allItems->push([
                 'date'        => Carbon::parse($dep->date)->format('Y-m-d'),
+                'invoice_no'  => null,
                 'customer'    => 'Cash Deposits',
-                'vehicle_manufacturer' => '',
-                'vehicle_model'        => '',
-                'vehicle_year'         => '',
-                'vehicle_plate'        => '',
                 'description' => $dep->description ?? '-',
                 'quantity'    => '',
                 'amount'      => $dep->amount,
-                'remarks'     => '',
                 'type'        => 'Deposit',
             ]);
         }
@@ -190,8 +190,7 @@ class GrossSalesReportController extends Controller
             // line‐items
             foreach ($invoice->items as $item) {
                 $sales->push([
-                    'invoice_id'     => $invoice->id,               // ← new
-                    'invoice_no'     => $invoice->invoice_no,       // ← new
+                    'invoice_no'           => $invoice->invoice_no,
                     'date'                 => $invoice->created_at->format('Y-m-d'),
                     'customer'             => $customer,
                     'vehicle_manufacturer' => $invoice->vehicle?->manufacturer ?? '',
@@ -203,18 +202,17 @@ class GrossSalesReportController extends Controller
                     'quantity'             => $item->quantity,
                     'amount'               => $item->line_total,
                     'remarks'              => $invoice->remarks ?? '',
-                     // ← Newly added:
-                    'payment_type'   => $invoice->payment_type,
-                    'discount'       => $invoice->total_discount,
-                    'payment'        => $invoice->grand_total,
+                    // newly added:
+                    'payment_type'         => $invoice->payment_type,
+                    'discount'             => $invoice->total_discount,
+                    'payment'              => $invoice->grand_total,
                 ]);
             }
 
             // jobs
             foreach ($invoice->jobs as $job) {
                 $sales->push([
-                    'invoice_id'     => $invoice->id,               // ← new
-                    'invoice_no'     => $invoice->invoice_no,       // ← new
+                    'invoice_no'           => $invoice->invoice_no,
                     'date'                 => $invoice->created_at->format('Y-m-d'),
                     'customer'             => $customer,
                     'vehicle_manufacturer' => $invoice->vehicle?->manufacturer ?? '',
@@ -225,10 +223,10 @@ class GrossSalesReportController extends Controller
                     'quantity'             => 1,
                     'amount'               => $job->total ?? 0,
                     'remarks'              => 'Labor',
-                     // ← Newly added:
-                    'payment_type'   => $invoice->payment_type,
-                    'discount'       => $invoice->total_discount,
-                    'payment'        => $invoice->grand_total,
+                    // newly added:
+                    'payment_type'         => $invoice->payment_type,
+                    'discount'             => $invoice->total_discount,
+                    'payment'              => $invoice->grand_total,
                 ]);
             }
         }
