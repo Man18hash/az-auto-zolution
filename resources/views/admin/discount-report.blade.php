@@ -5,6 +5,7 @@
 <div class="container-fluid px-2 px-md-4">
   <h2 class="fw-bold mb-4">Discount Report</h2>
 
+  {{-- Date Filter --}}
   <form method="GET" class="row g-3 align-items-end mb-4">
     <div class="col-auto">
       <label for="start_date" class="form-label">From:</label>
@@ -27,7 +28,8 @@
 
   @if($invoices->count())
     <div class="table-responsive">
-      <table class="table table-sm table-bordered table-hover align-middle mb-4" style="font-family:Calibri, sans-serif;">
+      <table class="table table-sm table-bordered table-hover align-middle mb-4"
+             style="font-family:Calibri, sans-serif;">
         <colgroup>
           <col style="width:4%">
           <col style="width:12%">
@@ -59,23 +61,31 @@
               <td>{{ $invoice->client->name ?? $invoice->customer_name }}</td>
               <td>{{ $invoice->vehicle->plate_number ?? $invoice->vehicle_name }}</td>
               <td class="text-end">₱{{ number_format($invoice->subtotal, 2) }}</td>
+              {{-- Use invoice->total_discount directly --}}
               <td class="text-end text-danger">₱{{ number_format($invoice->total_discount, 2) }}</td>
               <td class="text-end">₱{{ number_format($invoice->grand_total, 2) }}</td>
             </tr>
           @endforeach
         </tbody>
 
-        {{-- ─── Discount Breakdown in the same table footer ─── --}}
         <tfoot class="table-secondary text-nowrap">
           @foreach($discountByDate as $row)
             <tr>
-              <td colspan="6" class="text-end fw-bold">Discount on {{ $row['date'] }}:</td>
-              <td colspan="2" class="text-end text-danger">₱{{ number_format($row['discount'], 2) }}</td>
+              <td colspan="6" class="text-end fw-bold">
+                Discount on {{ $row['date'] }}:
+              </td>
+              <td colspan="2" class="text-end text-danger">
+                {{-- Row discount is sum of total_discount --}}
+                ₱{{ number_format($row['discount'], 2) }}
+              </td>
             </tr>
           @endforeach
           <tr>
             <td colspan="6" class="text-end fw-bold">Grand Total Discount:</td>
-            <td colspan="2" class="text-end text-danger">₱{{ number_format($totalDiscount, 2) }}</td>
+            <td colspan="2" class="text-end text-danger">
+              {{-- totalDiscount from controller --}}
+              ₱{{ number_format($totalDiscount, 2) }}
+            </td>
           </tr>
         </tfoot>
       </table>

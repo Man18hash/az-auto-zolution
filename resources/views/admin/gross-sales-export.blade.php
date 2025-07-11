@@ -1,58 +1,53 @@
-@php
-    $byDate = collect($allItems)->groupBy('date');
-    $blocks = [];
-    $grandSales = $grandAR = $grandExpenses = $grandDeposits = 0;
+<table>
+  @php
+    use Carbon\Carbon;
+
+    // Group all items by date
+    $byDate     = collect($allItems)->groupBy('date');
+    $blocks     = [];
+    $grandGross = 0;
 
     foreach ($byDate->keys()->sort()->values() as $date) {
-        $rows = [];
-        $daySales = $dayAR = $dayExpenses = $dayDeposits = 0;
+      $items    = $byDate[$date];
+      // split into invoices vs orphan rows
+      $invoices = $items->whereNotNull('invoice_no')->groupBy('invoice_no');
+      $orphans  = $items->whereNull('invoice_no');
 
-        foreach ($byDate[$date] as $item) {
-            $rows[] = [
-                'customer'             => $item['customer']             ?? '-',
-                'vehicle_manufacturer' => $item['vehicle_manufacturer'] ?? '',
-                'vehicle_model'        => $item['vehicle_model']        ?? '',
-                'vehicle_year'         => $item['vehicle_year']         ?? '',
-                'vehicle_plate'        => $item['vehicle_plate']        ?? '',
-                'qty'                  => $item['quantity']             ?? '',
-                'description'          => $item['description']          ?? '-',
-                'amount'               => $item['amount']               ?? 0,
-                'remarks'              => $item['remarks']              ?? '',
-                'type'                 => $item['type']                 ?? 'Sales',
-            ];
+      // daily subtotals
+      $daySales = $invoices->flatten(1)
+                    ->where('type','Sales')
+                    ->sum('amount');
+      $dayAR    = $invoices->flatten(1)
+                    ->where('type','A/R')
+                    ->sum('amount');
+      $dayExp   = $invoices->flatten(1)
+                    ->where('type','Expense')
+                    ->sum('amount')
+                  + $orphans->where('type','Expense')->sum('amount');
+      $dayDep   = $invoices->flatten(1)
+                    ->where('type','Deposit')
+                    ->sum('amount')
+                  + $orphans->where('type','Deposit')->sum('amount');
+      $dayDisc  = $invoices->map(fn($group) => $group->first()['discount'])->sum();
+      // gross = sales + ar - exp - dep - discounts
+      $dayGross = $daySales + $dayAR - $dayExp - $dayDep - $dayDisc;
 
-            match ($item['type']) {
-                'Sales'   => $daySales    += $item['amount'],
-                'A/R'     => $dayAR       += $item['amount'],
-                'Expense' => $dayExpenses += $item['amount'],
-                'Deposit' => $dayDeposits += $item['amount'],
-                default   => null,
-            };
-        }
+      $grandGross += $dayGross;
 
-        $blocks[] = [
-            'date'       => $date,
-            'rows'       => $rows,
-            'totalSales' => $daySales,
-            'totalAR'    => $dayAR,
-            'totalExp'   => $dayExpenses,
-            'totalDep'   => $dayDeposits,
-            'gross'      => $daySales + $dayAR - $dayExpenses + $dayDeposits,
-        ];
-
-        $grandSales    += $daySales;
-        $grandAR       += $dayAR;
-        $grandExpenses += $dayExpenses;
-        $grandDeposits += $dayDeposits;
+      $blocks[] = [
+        'date'     => $date,
+        'invoices' => $invoices,
+        'orphans'  => $orphans,
+        'totals'   => compact('daySales','dayAR','dayExp','dayDep','dayDisc','dayGross'),
+      ];
     }
-@endphp
+  @endphp
 
-<table>
-  {{-- DATE HEADERS --}}
+  {{-- DATE HEADER --}}
   <tr>
     @foreach($blocks as $b)
-      <th colspan="5" style="background:#ffe066;font-size:16px;">
-        {{ \Carbon\Carbon::parse($b['date'])->format('F d, Y') }}
+      <th colspan="6" style="background:#ffe066;font-size:16px;">
+        {{ Carbon::parse($b['date'])->format('F d, Y') }}
       </th>
     @endforeach
   </tr>
@@ -60,104 +55,126 @@
   {{-- COLUMN HEADERS --}}
   <tr>
     @foreach($blocks as $b)
-      <th style="background:#ffe066">Customer / Vehicle</th>
-      <th style="background:#ffe066">Qty</th>
+      <th style="background:#ffe066">Invoice / Customer / Vehicle</th>
       <th style="background:#ffe066">Description</th>
+      <th style="background:#ffe066">Qty</th>
       <th style="background:#ffe066">Amount</th>
+      <th style="background:#ffe066">Type</th>
       <th style="background:#ffe066">Remarks</th>
     @endforeach
   </tr>
 
-  {{-- DATA ROWS --}}
-  @php
-    // keep track to only show customer + vehicle once per block
-    $prevCust = array_fill(0, count($blocks), null);
-    $maxRows   = max(array_map(fn($b)=>count($b['rows']), $blocks));
-  @endphp
+  {{-- DATA BLOCKS --}}
+  @foreach($blocks as $b)
+    @php
+      $tot = $b['totals'];
+    @endphp
 
-  @for($i = 0; $i < $maxRows; $i++)
-    <tr>
-      @foreach($blocks as $idx => $b)
-        @php $r = $b['rows'][$i] ?? null; @endphp
+    {{-- per‐invoice groups --}}
+    @foreach($b['invoices'] as $invNo => $lines)
+      @php
+        $hdr    = $lines->first();
+        $cust   = $hdr['customer'];
+        $veh    = trim("{$hdr['vehicle_manufacturer']} {$hdr['vehicle_model']} {$hdr['vehicle_year']} ({$hdr['vehicle_plate']})");
+        $descHd = "{$invNo} — {$cust}" . ($veh ? " – {$veh}" : '');
+        $discount   = $hdr['discount'];
+        $clientTotal= $hdr['payment'] - $discount;
+        $ptype      = in_array($hdr['payment_type'], ['debit','credit'])
+                      ? 'Non-Cash'
+                      : ucfirst($hdr['payment_type'] ?? 'Cash');
+      @endphp
 
-        @if($r)
-          @php
-            if($prevCust[$idx] !== $r['customer']) {
-              $prevCust[$idx] = $r['customer'];
-              // build display string
-              $disp = $r['customer'];
-              $veh  = trim("{$r['vehicle_manufacturer']} {$r['vehicle_model']} {$r['vehicle_year']} ({$r['vehicle_plate']})");
-              if($veh) {
-                $disp .= " – {$veh}";
-              }
-            } else {
-              $disp = '';
-            }
-          @endphp
+      {{-- header row --}}
+      <tr>
+        <td colspan="6" style="background:#f0f0f0;font-weight:bold;">
+          {{ $descHd }}
+        </td>
+      </tr>
 
-          <td>{{ $disp }}</td>
-          <td class="text-center">{{ $r['qty'] }}</td>
-          <td>{{ $r['description'] }}</td>
-          <td>₱{{ number_format($r['amount'], 2) }}</td>
-          <td>{{ $r['remarks'] }}</td>
-        @else
-          <td colspan="5"></td>
-        @endif
+      {{-- line items --}}
+      @foreach($lines as $row)
+        <tr>
+          <td></td>
+          <td>{{ $row['service'] ?? $row['description'] }}</td>
+          <td class="text-center">{{ $row['quantity'] }}</td>
+          <td>₱{{ number_format($row['amount'],2) }}</td>
+          <td>{{ $row['type'] }}</td>
+          <td>{{ $row['remarks'] ?? '' }}</td>
+        </tr>
       @endforeach
-    </tr>
-  @endfor
 
-  {{-- PER‐BLOCK TOTALS --}}
-  <tr>
-    @foreach($blocks as $b)
-      <td colspan="2"></td>
-      <td><strong>Total Sales:</strong></td>
-      <td><strong>₱{{ number_format($b['totalSales'],2) }}</strong></td>
-      <td></td>
+      {{-- invoice subtotals --}}
+      <tr>
+        <td colspan="3"></td>
+        <td><strong>Discount:</strong></td>
+        <td colspan="2">₱{{ number_format($discount,2) }}</td>
+      </tr>
+      <tr>
+        <td colspan="3"></td>
+        <td><strong>Client Total:</strong></td>
+        <td colspan="2">₱{{ number_format($clientTotal,2) }}</td>
+      </tr>
+      <tr>
+        <td colspan="3"></td>
+        <td><strong>Payment Type:</strong></td>
+        <td colspan="2">{{ $ptype }}</td>
+      </tr>
     @endforeach
-  </tr>
-  <tr>
-    @foreach($blocks as $b)
-      <td colspan="2"></td>
-      <td><strong>Total A/R:</strong></td>
-      <td><strong>₱{{ number_format($b['totalAR'],2) }}</strong></td>
-      <td></td>
+
+    {{-- orphan rows (pure A/R, Expense, Deposit) --}}
+    @foreach($b['orphans'] as $row)
+      <tr>
+        <td class="fw-bold">{{ $row['customer'] }}</td>
+        <td>{{ $row['description'] }}</td>
+        <td class="text-center">{{ $row['quantity'] }}</td>
+        <td>₱{{ number_format($row['amount'],2) }}</td>
+        <td>{{ $row['type'] }}</td>
+        <td>{{ $row['remarks'] ?? '' }}</td>
+      </tr>
     @endforeach
-  </tr>
-  <tr>
-    @foreach($blocks as $b)
+
+    {{-- daily totals footer --}}
+    <tr>
+      <td colspan="3" class="text-end"><strong>Total Sales:</strong></td>
+      <td>₱{{ number_format($tot['daySales'],2) }}</td>
       <td colspan="2"></td>
-      <td><strong>Total Expenses:</strong></td>
-      <td><strong>₱{{ number_format($b['totalExp'],2) }}</strong></td>
-      <td></td>
-    @endforeach
-  </tr>
-  <tr>
-    @foreach($blocks as $b)
+    </tr>
+    <tr>
+      <td colspan="3" class="text-end"><strong>Total A/R:</strong></td>
+      <td>₱{{ number_format($tot['dayAR'],2) }}</td>
       <td colspan="2"></td>
-      <td><strong>Total Deposits:</strong></td>
-      <td><strong>₱{{ number_format($b['totalDep'],2) }}</strong></td>
-      <td></td>
-    @endforeach
-  </tr>
-  <tr>
-    @foreach($blocks as $b)
+    </tr>
+    <tr>
+      <td colspan="3" class="text-end"><strong>Total Expenses:</strong></td>
+      <td>₱{{ number_format($tot['dayExp'],2) }}</td>
       <td colspan="2"></td>
-      <td><strong>Gross Total:</strong></td>
-      <td><strong>₱{{ number_format($b['gross'],2) }}</strong></td>
-      <td></td>
-    @endforeach
-  </tr>
+    </tr>
+    <tr>
+      <td colspan="3" class="text-end"><strong>Total Deposits:</strong></td>
+      <td>₱{{ number_format($tot['dayDep'],2) }}</td>
+      <td colspan="2"></td>
+    </tr>
+    <tr>
+      <td colspan="3" class="text-end"><strong>Total Discounts:</strong></td>
+      <td>₱{{ number_format($tot['dayDisc'],2) }}</td>
+      <td colspan="2"></td>
+    </tr>
+    <tr>
+      <td colspan="3" class="text-end"><strong>Gross Total:</strong></td>
+      <td>₱{{ number_format($tot['dayGross'],2) }}</td>
+      <td colspan="2"></td>
+    </tr>
+  @endforeach
 
   {{-- GRAND GROSS TOTAL --}}
-  <tr><td colspan="{{ count($blocks)*5 }}"></td></tr>
+  <tr><td colspan="{{ count($blocks)*6 }}"></td></tr>
   <tr>
-    <td colspan="{{ count($blocks)*5 - 1 }}"
-        style="text-align:right;font-weight:bold;background:#bbb;color:#fff;">
+    <td colspan="{{ count($blocks)*6 -1 }}" style="text-align:right;
+        font-weight:bold;background:#bbb;color:#fff;">
       Grand Gross Total:
     </td>
     <td style="font-weight:bold;background:#bbb;color:#fff;">
-      ₱{{ number_format($grandSales + $grandAR - $grandExpenses + $grandDeposits,2) }}
+      ₱{{ number_format($grandGross,2) }}
     </td>
   </tr>
 </table>
