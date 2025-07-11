@@ -19,8 +19,19 @@ use App\Http\Controllers\Admin\DiscountReportController;
 use App\Http\Controllers\Cashier\HomeController;
 use App\Http\Controllers\Admin\IncomeAnalysisReportController;
 use App\Http\Controllers\Admin\EmailEmployeeController;
+
+use Illuminate\Support\Facades\Auth;
+
+
+
+
 use App\Http\Controllers\Admin\InvoiceHistoryController;
 
+
+Route::get('/logout', function () {
+    Auth::logout();
+    return redirect('/login');
+});
 
 
 // Redirect root URL to login

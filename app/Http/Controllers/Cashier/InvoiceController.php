@@ -41,25 +41,25 @@ class InvoiceController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'client_id'      => 'nullable|exists:clients,id',
-            'vehicle_id'     => 'nullable|exists:vehicles,id',
-            'customer_name'  => 'nullable|string',
-            'vehicle_name'   => 'nullable|string',
-            'plate'          => 'nullable|string',
-            'model'          => 'nullable|string',
-            'year'           => 'nullable|string',
-            'color'          => 'nullable|string',
-            'odometer'       => 'nullable|string',
-            'subtotal'       => 'required|numeric',
+            'client_id' => 'nullable|exists:clients,id',
+            'vehicle_id' => 'nullable|exists:vehicles,id',
+            'customer_name' => 'nullable|string',
+            'vehicle_name' => 'nullable|string',
+            'plate' => 'nullable|string',
+            'model' => 'nullable|string',
+            'year' => 'nullable|string',
+            'color' => 'nullable|string',
+            'odometer' => 'nullable|string',
+            'subtotal' => 'required|numeric',
             'total_discount' => 'required|numeric',
-            'vat_amount'     => 'required|numeric',
-            'grand_total'    => 'required|numeric',
-            'payment_type'   => 'required|string',
-            'status'         => 'required|in:unpaid,paid,cancelled,voided',
+            'vat_amount' => 'required|numeric',
+            'grand_total' => 'required|numeric',
+            'payment_type' => 'required|string',
+            'status' => 'required|in:unpaid,paid,cancelled,voided',
             'service_status' => 'required|in:pending,in_progress,done',
             'invoice_no' => 'required|string|unique:invoices,invoice_no',
-            'number'         => 'nullable|string',
-            'address'        => 'nullable|string',
+            'number' => 'nullable|string',
+            'address' => 'nullable|string',
         ]);
 
         // Vehicle logic
@@ -69,20 +69,20 @@ class InvoiceController extends Controller
             if ($vehicle) {
                 $vehicle->update([
                     'plate_number' => $request->plate,
-                    'model'        => $request->model,
-                    'year'         => $request->year,
-                    'color'        => $request->color,
-                    'odometer'     => $request->odometer,
+                    'model' => $request->model,
+                    'year' => $request->year,
+                    'color' => $request->color,
+                    'odometer' => $request->odometer,
                 ]);
             }
         } else if ($request->plate || $request->model || $request->year || $request->color || $request->odometer) {
             $vehicle = Vehicle::create([
                 'plate_number' => $request->plate,
-                'model'        => $request->model,
-                'year'         => $request->year,
-                'color'        => $request->color,
-                'odometer'     => $request->odometer,
-                'client_id'    => $request->client_id,
+                'model' => $request->model,
+                'year' => $request->year,
+                'color' => $request->color,
+                'odometer' => $request->odometer,
+                'client_id' => $request->client_id,
             ]);
             $vehicleId = $vehicle->id;
         } else {
@@ -90,46 +90,43 @@ class InvoiceController extends Controller
         }
 
         $invoice = Invoice::create([
-            'client_id'      => $request->client_id,
-            'vehicle_id'     => $vehicleId,
-            'customer_name'  => $request->customer_name,
-            'vehicle_name'   => $request->vehicle_name,
-            'source_type'    => 'invoicing',
+            'client_id' => $request->client_id,
+            'vehicle_id' => $vehicleId,
+            'customer_name' => $request->customer_name,
+            'vehicle_name' => $request->vehicle_name,
+            'source_type' => 'invoicing',
             'service_status' => $request->service_status ?? 'pending',
-            'status'         => $request->status ?? 'unpaid',
-            'subtotal'       => $request->subtotal,
+            'status' => $request->status ?? 'unpaid',
+            'subtotal' => $request->subtotal,
             'total_discount' => $request->total_discount,
-            'vat_amount'     => $request->vat_amount,
-            'grand_total'    => $request->grand_total,
-            'payment_type'   => $request->payment_type,
+            'vat_amount' => $request->vat_amount,
+            'grand_total' => $request->grand_total,
+            'payment_type' => $request->payment_type,
             'invoice_no' => $request->invoice_no,
-            'number'         => $request->number,
-            'address'        => $request->address,
+            'number' => $request->number,
+            'address' => $request->address,
         ]);
 
         // Save items
-       // Update items (delete old, add new)
-$invoice->items()->delete();
-if ($request->has('items')) {
-    foreach ($request->items as $item) {
-        $invoice->items()->create([
-            'part_id'                  => $item['part_id'] ?? null,
-            'manual_part_name'         => $item['manual_part_name'] ?? null,
-            'manual_serial_number'     => $item['manual_serial_number'] ?? null,
-            'manual_acquisition_price' => $item['manual_acquisition_price'] ?? null,
-            'manual_selling_price'     => $item['manual_selling_price'] ?? null,
-            'quantity'                 => $item['quantity'],
-            'original_price'           => $item['original_price']  ?? ($item['manual_selling_price'] ?? 0),
-            'discounted_price'         => $item['discounted_price']?? ($item['manual_selling_price'] ?? 0),
-            'discount_value'           => (
-                                            ($item['original_price'] ?? ($item['manual_selling_price'] ?? 0))
-                                            - ($item['discounted_price'] ?? ($item['manual_selling_price'] ?? 0))
-                                          ),
-            'line_total'               => $item['quantity']
-                                          * ($item['discounted_price'] ?? ($item['manual_selling_price'] ?? 0)),
-        ]);
-    }
-}
+        // Update items (delete old, add new)
+        $invoice->items()->delete();
+        if ($request->has('items')) {
+            foreach ($request->items as $item) {
+                $invoice->items()->create([
+                    'part_id' => $item['part_id'] ?? null,
+                    'manual_part_name' => $item['manual_part_name'] ?? null,
+                    'manual_serial_number' => $item['manual_serial_number'] ?? null,
+                    'manual_acquisition_price' => $item['manual_acquisition_price'] ?? null,
+                    'manual_selling_price' => $item['manual_price'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'original_price' => $item['price'] ?? ($item['manual_price'] ?? 0),
+                    'discounted_price' => $item['price'] ?? ($item['manual_price'] ?? 0),
+                    'discount_value' => 0,
+                    'line_total' => $item['quantity'] * ($item['price'] ?? ($item['manual_price'] ?? 0)),
+                ]);
+
+            }
+        }
 
         // Save jobs
         if ($request->has('jobs')) {
@@ -137,8 +134,8 @@ if ($request->has('items')) {
                 $techId = !empty($job['technician_id']) ? $job['technician_id'] : null;
                 $invoice->jobs()->create([
                     'job_description' => $job['job_description'] ?? '',
-                    'technician_id'   => $techId,
-                    'total'           => $job['total'] ?? 0,
+                    'technician_id' => $techId,
+                    'total' => $job['total'] ?? 0,
                 ]);
             }
         }
@@ -180,7 +177,7 @@ if ($request->has('items')) {
         // If this is a quick "mark as paid" or service_status update (not full edit)
         if ($request->has('status') && $request->method() == 'PUT' && !$request->has('items')) {
             $invoice->update([
-                'status'         => $request->status,
+                'status' => $request->status,
                 'service_status' => $request->service_status ?? $invoice->service_status,
             ]);
 
@@ -198,23 +195,23 @@ if ($request->has('items')) {
         }
 
         $request->validate([
-            'client_id'      => 'nullable|exists:clients,id',
-            'vehicle_id'     => 'nullable|exists:vehicles,id',
-            'customer_name'  => 'nullable|string',
-            'vehicle_name'   => 'nullable|string',
-            'plate'          => 'nullable|string',
-            'model'          => 'nullable|string',
-            'year'           => 'nullable|string',
-            'color'          => 'nullable|string',
-            'odometer'       => 'nullable|string',
-            'subtotal'       => 'required|numeric',
+            'client_id' => 'nullable|exists:clients,id',
+            'vehicle_id' => 'nullable|exists:vehicles,id',
+            'customer_name' => 'nullable|string',
+            'vehicle_name' => 'nullable|string',
+            'plate' => 'nullable|string',
+            'model' => 'nullable|string',
+            'year' => 'nullable|string',
+            'color' => 'nullable|string',
+            'odometer' => 'nullable|string',
+            'subtotal' => 'required|numeric',
             'total_discount' => 'required|numeric',
-            'vat_amount'     => 'required|numeric',
-            'grand_total'    => 'required|numeric',
-            'payment_type'   => 'required|string',
-            'status'         => 'required|in:unpaid,paid,cancelled,voided',
+            'vat_amount' => 'required|numeric',
+            'grand_total' => 'required|numeric',
+            'payment_type' => 'required|string',
+            'status' => 'required|in:unpaid,paid,cancelled,voided',
             'service_status' => 'required|in:pending,in_progress,done',
-            'invoice_no' => 'required|string|unique:invoices,invoice_no,'.$invoice->id,
+            'invoice_no' => 'required|string|unique:invoices,invoice_no,' . $invoice->id,
         ]);
 
         $vehicleId = $request->vehicle_id;
@@ -223,20 +220,20 @@ if ($request->has('items')) {
             if ($vehicle) {
                 $vehicle->update([
                     'plate_number' => $request->plate,
-                    'model'        => $request->model,
-                    'year'         => $request->year,
-                    'color'        => $request->color,
-                    'odometer'     => $request->odometer,
+                    'model' => $request->model,
+                    'year' => $request->year,
+                    'color' => $request->color,
+                    'odometer' => $request->odometer,
                 ]);
             }
         } else if ($request->plate || $request->model || $request->year || $request->color || $request->odometer) {
             $vehicle = Vehicle::create([
                 'plate_number' => $request->plate,
-                'model'        => $request->model,
-                'year'         => $request->year,
-                'color'        => $request->color,
-                'odometer'     => $request->odometer,
-                'client_id'    => $request->client_id,
+                'model' => $request->model,
+                'year' => $request->year,
+                'color' => $request->color,
+                'odometer' => $request->odometer,
+                'client_id' => $request->client_id,
             ]);
             $vehicleId = $vehicle->id;
         } else {
@@ -244,43 +241,40 @@ if ($request->has('items')) {
         }
 
         $invoice->update([
-            'client_id'      => $request->client_id,
-            'vehicle_id'     => $vehicleId,
-            'customer_name'  => $request->customer_name,
-            'vehicle_name'   => $request->vehicle_name,
-            'source_type'    => 'invoicing',
+            'client_id' => $request->client_id,
+            'vehicle_id' => $vehicleId,
+            'customer_name' => $request->customer_name,
+            'vehicle_name' => $request->vehicle_name,
+            'source_type' => 'invoicing',
             'service_status' => $request->service_status ?? 'pending',
-            'status'         => $request->status ?? 'unpaid',
-            'subtotal'       => $request->subtotal,
+            'status' => $request->status ?? 'unpaid',
+            'subtotal' => $request->subtotal,
             'total_discount' => $request->total_discount,
-            'vat_amount'     => $request->vat_amount,
-            'grand_total'    => $request->grand_total,
-            'payment_type'   => $request->payment_type,
+            'vat_amount' => $request->vat_amount,
+            'grand_total' => $request->grand_total,
+            'payment_type' => $request->payment_type,
             'invoice_no' => $request->invoice_no,
         ]);
 
-     // Update items (delete old, add new)
-$invoice->items()->delete();
-if ($request->has('items')) {
-    foreach ($request->items as $item) {
-        $invoice->items()->create([
-            'part_id'                  => $item['part_id'] ?? null,
-            'manual_part_name'         => $item['manual_part_name'] ?? null,
-            'manual_serial_number'     => $item['manual_serial_number'] ?? null,
-            'manual_acquisition_price' => $item['manual_acquisition_price'] ?? null,
-            'manual_selling_price'     => $item['manual_selling_price'] ?? null,
-            'quantity'                 => $item['quantity'],
-            'original_price'           => $item['original_price']  ?? ($item['manual_selling_price'] ?? 0),
-            'discounted_price'         => $item['discounted_price']?? ($item['manual_selling_price'] ?? 0),
-            'discount_value'           => (
-                                            ($item['original_price'] ?? ($item['manual_selling_price'] ?? 0))
-                                            - ($item['discounted_price'] ?? ($item['manual_selling_price'] ?? 0))
-                                          ),
-            'line_total'               => $item['quantity']
-                                          * ($item['discounted_price'] ?? ($item['manual_selling_price'] ?? 0)),
-        ]);
-    }
-}
+        // Update items (delete old, add new)
+        $invoice->items()->delete();
+        if ($request->has('items')) {
+            foreach ($request->items as $item) {
+                $invoice->items()->create([
+                    'part_id' => $item['part_id'] ?? null,
+                    'manual_part_name' => $item['manual_part_name'] ?? null,
+                    'manual_serial_number' => $item['manual_serial_number'] ?? null,
+                    'manual_acquisition_price' => $item['manual_acquisition_price'] ?? null,
+                    'manual_selling_price' => $item['manual_price'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'original_price' => $item['price'] ?? ($item['manual_price'] ?? 0),
+                    'discounted_price' => $item['price'] ?? ($item['manual_price'] ?? 0),
+                    'discount_value' => 0,
+                    'line_total' => $item['quantity'] * ($item['price'] ?? ($item['manual_price'] ?? 0)),
+                ]);
+
+            }
+        }
 
 
 
@@ -291,8 +285,8 @@ if ($request->has('items')) {
                 $techId = !empty($job['technician_id']) ? $job['technician_id'] : null;
                 $invoice->jobs()->create([
                     'job_description' => $job['job_description'] ?? '',
-                    'technician_id'   => $techId,
-                    'total'           => $job['total'] ?? 0,
+                    'technician_id' => $techId,
+                    'total' => $job['total'] ?? 0,
                 ]);
             }
         }

@@ -171,16 +171,15 @@
           <h4 class="fw-bold">Items</h4>
           <table class="table table-bordered" id="items-table">
             <thead>
-              <tr>
-                <th style="min-width:250px;">Item</th>
-                <th>Qty</th>
-                <th>Orig ₱</th>
-                <th>Disc ₱</th>
-                <th>Disc Val</th>
-                <th>Total ₱</th>
-                <th></th>
-              </tr>
-            </thead>
+  <tr>
+    <th style="min-width:250px;">Item</th>
+    <th>Qty</th>
+    <th>Price ₱</th>
+    <th>Line Total ₱</th>
+    <th></th>
+  </tr>
+</thead>
+
             <tbody></tbody>
             <tfoot>
               <tr>
@@ -220,7 +219,9 @@
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Total Discount</label>
-              <input type="number" step="0.1" name="total_discount" class="form-control">
+              <input type="number" step="0.1" name="total_discount" class="form-control"
+       value="{{ old('total_discount', $invoice->total_discount ?? '') }}">
+
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">VAT (12%)</label>
@@ -441,17 +442,12 @@ $('#vehicle_id').on('change', function() {
 // ─── Item row with Manual‐toggle + select2 autopopulate ───
 // ─── Item row with Manual-popup + Select2 autopopulate ───
 function addItemRow(data = null) {
-  const idx       = $('#items-table tbody tr').length;
-  const partId    = data?.part_id             || '';
-  const qty       = data?.quantity            || 1;
-  const orig      = (data?.original_price ?? '') + '';
-  const disc      = (data?.discounted_price ?? '') + '';
-  const discVal   = (orig && disc && qty)
-    ? ((orig - disc) * qty).toFixed(2)
-    : '0.00';
-  const lineTotal = (disc && qty)
-    ? (disc * qty).toFixed(2)
-    : '0.00';
+  const idx = $('#items-table tbody tr').length;
+  const partId = data?.part_id || '';
+  const qty = data?.quantity || 1;
+  const price = data?.price || '';
+
+  const lineTotal = (qty && price) ? (qty * price).toFixed(2) : '0.00';
 
   const row = $(`<tr>
     <td>
@@ -461,75 +457,69 @@ function addItemRow(data = null) {
                 style="width:100%">
           <option value="">-- search part --</option>
         </select>
-        <button type="button" class="btn btn-warning btn-sm manual-toggle">
-          Manual
-        </button>
+        <button type="button" class="btn btn-warning btn-sm manual-toggle">Manual</button>
       </div>
       <div class="manual-fields mt-2 d-none">
-        <input type="text"   name="items[${idx}][manual_part_name]"         class="form-control form-control-sm mb-1" placeholder="Part Name">
-        <input type="text"   name="items[${idx}][manual_serial_number]"     class="form-control form-control-sm mb-1" placeholder="Serial #">
-        <input type="number" name="items[${idx}][manual_acquisition_price]" class="form-control form-control-sm mb-1" placeholder="Acquisition ₱">
-        <input type="number" name="items[${idx}][manual_selling_price]"     class="form-control form-control-sm mb-1" placeholder="Selling ₱">
+        <input type="text"   name="items[${idx}][manual_part_name]" class="form-control form-control-sm mb-1" placeholder="Part Name">
+        <input type="text"   name="items[${idx}][manual_serial_number]" class="form-control form-control-sm mb-1" placeholder="Serial #">
+        <input type="number" name="items[${idx}][manual_price]" class="form-control form-control-sm mb-1" placeholder="Price ₱">
         <div class="d-flex gap-2">
           <button type="button" class="btn btn-sm btn-secondary cancel-manual">Cancel</button>
-          <button type="button" class="btn btn-sm btn-success   save-manual">Save</button>
+          <button type="button" class="btn btn-sm btn-success save-manual">Save</button>
         </div>
       </div>
     </td>
-    <td><input name="items[${idx}][quantity]"         type="number" class="form-control form-control-sm" value="${qty}"></td>
-    <td><input name="items[${idx}][original_price]"   type="number" step="0.01" readonly class="form-control form-control-sm" value="${orig}"></td>
-    <td><input name="items[${idx}][discounted_price]" type="number" step="0.01" class="form-control form-control-sm" value="${disc}"></td>
-    <td class="col-disc-val">${discVal}</td>
+    <td><input name="items[${idx}][quantity]" type="number" class="form-control form-control-sm" value="${qty}"></td>
+    <td><input name="items[${idx}][price]" type="number" step="0.01" class="form-control form-control-sm" value="${price}"></td>
     <td class="col-line-total">${lineTotal}</td>
     <td><button type="button" class="btn btn-sm btn-danger remove-btn">✕</button></td>
   </tr>`);
 
-  // — Select2 setup —
+  // Setup Select2
   const select2Data = [
-  { id: '', text: '-- search part --', price: 0 },
-  ...parts.map(p => ({
-    id: p.id,
-    // <-- NEW: prefix with [part_number]
-    text: `[${p.part_number}] ${p.item_name} – Stock: ${p.quantity}`,
-    price: Number(p.selling)
-  }))
-];
+    { id: '', text: '-- search part --', price: 0 },
+    ...parts.map(p => ({
+      id: p.id,
+      text: `[${p.part_number}] ${p.item_name} – Stock: ${p.quantity}`,
+      price: Number(p.selling)
+    }))
+  ];
 
-const $sel = row.find('.part-select').select2({
-  data: select2Data,
-  placeholder: '-- search part --',
-  allowClear: true,
-  width: 'resolve',
-  dropdownParent: $('#invoiceModal .modal-content')
-});
+  const $sel = row.find('.part-select').select2({
+    data: select2Data,
+    placeholder: '-- search part --',
+    allowClear: true,
+    width: 'resolve',
+    dropdownParent: $('#invoiceModal .modal-content')
+  });
 
   // pre-select on edit
   if (partId) {
     $sel.val(partId).trigger('change');
     const pre = select2Data.find(o => o.id == partId);
     if (pre?.price) {
-      row.find('[name$="[original_price]"], [name$="[discounted_price]"]').val(pre.price.toFixed(2));
+      row.find('[name$="[price]"]').val(pre.price.toFixed(2));
     }
   }
 
   // inventory selection → pricing
   $sel.on('select2:select', e => {
     const price = e.params.data.price || 0;
-    row.find('[name$="[original_price]"], [name$="[discounted_price]"]').val(price.toFixed(2));
+    row.find('[name$="[price]"]').val(price.toFixed(2));
     row.find('[name$="[quantity]"]').val(1);
     recalc();
   }).on('select2:clear', () => {
-    row.find('[name$="[original_price]"], [name$="[discounted_price]"]').val('');
+    row.find('[name$="[price]"]').val('');
     recalc();
   });
 
-  // qty/discount inputs → recalc
-  row.find('[name$="[quantity]"], [name$="[discounted_price]"]').on('input', recalc);
+  // qty/price inputs → recalc
+  row.find('[name$="[quantity]"], [name$="[price]"]').on('input', recalc);
 
   // remove row
   row.find('.remove-btn').on('click', () => { row.remove(); recalc(); });
 
-  // ── Manual popup handlers ──
+  // Manual fields handlers
   row.find('.manual-toggle').on('click', () => {
     row.find('.manual-fields').removeClass('d-none');
     row.find('.input-group').addClass('d-none');
@@ -539,18 +529,18 @@ const $sel = row.find('.part-select').select2({
     row.find('.input-group').removeClass('d-none');
   });
   row.find('.save-manual').on('click', () => {
-    const sell = parseFloat(row.find('[name$="[manual_selling_price]"]').val()) || 0;
-    row.find('[name$="[original_price]"], [name$="[discounted_price]"]').val(sell.toFixed(2));
+    const manualPrice = parseFloat(row.find('[name$="[manual_price]"]').val()) || 0;
+    row.find('[name$="[price]"]').val(manualPrice.toFixed(2));
     row.find('[name$="[quantity]"]').val(1);
     recalc();
     row.find('.manual-fields').addClass('d-none');
     row.find('.input-group').removeClass('d-none');
   });
 
-  // append & final recalc
   $('#items-table tbody').append(row);
   recalc();
 }
+
 
 
 // JOB ROW HANDLING
@@ -580,53 +570,39 @@ function addJobRow(data = null) {
 
 // TOTALS CALCULATION
 function recalc() {
-  let itemsTotal     = 0;
-  let jobsTotal      = 0;
-  let computedDisc   = 0;
+  let itemsTotal = 0;
+  let jobsTotal = 0;
 
-  // 1) Items: sum totals & per-line discounts
+  // Calculate items line totals
   $('#items-table tbody tr').each(function() {
-    const $r      = $(this);
-    const qty    = +$r.find('[name$="[quantity]"]').val() || 0;
-    const orig   = +$r.find('[name$="[original_price]"]').val() || 0;
-    const discP  = +$r.find('[name$="[discounted_price]"]').val() || orig;
-    const lineDisc = qty * (orig - discP);
+    const $r = $(this);
+    const qty = +$r.find('[name$="[quantity]"]').val() || 0;
+    const price = +$r.find('[name$="[price]"]').val() || 0;
+    const lineTotal = qty * price;
 
-    itemsTotal   += qty * discP;
-    computedDisc += lineDisc;
+    itemsTotal += lineTotal;
 
-    // update line display
-    $r.find('.col-disc-val').text(lineDisc.toFixed(2));
-    $r.find('.col-line-total').text((qty * discP).toFixed(2));
+    // Update line display
+    $r.find('.col-line-total').text(lineTotal.toFixed(2));
   });
 
-  // 2) Jobs
+  // Calculate jobs total
   $('#jobs-table tbody tr').each(function() {
     jobsTotal += +$(this).find('[name$="[total]"]').val() || 0;
   });
 
-  // 3) Raw subtotal (before any discount)
-  const rawSubtotal = itemsTotal + jobsTotal + computedDisc;
+  // Calculate totals
+  const subtotal = itemsTotal + jobsTotal;
+  const totalDiscount = parseFloat($('[name="total_discount"]').val()) || 0;
+  const netAfterDisc = subtotal - totalDiscount;
+  const vatAmount = netAfterDisc * (0.12 / 1.12);
 
-  // 4) Which discount to use?
-  //    if user has typed a bottom discount, use that;
-  //    otherwise fall back to computedDisc.
-  const manual = parseFloat($('[name="total_discount"]').val());
-  const discount = !isNaN(manual) ? manual : computedDisc;
-
-  // 5) Net after discount, VAT inclusive
-  const netAfterDisc = rawSubtotal - discount;
-  const vatAmount    = netAfterDisc * (0.12 / 1.12);
-
-  // 6) Push values back
-  $('[name="subtotal"]').val(rawSubtotal.toFixed(2));
-  // only overwrite the field if user hasn't typed their own value
-  if (isNaN(manual)) {
-    $('[name="total_discount"]').val(computedDisc.toFixed(2));
-  }
+  // Set values back
+  $('[name="subtotal"]').val(subtotal.toFixed(2));
   $('[name="vat_amount"]').val(vatAmount.toFixed(2));
   $('[name="grand_total"]').val(netAfterDisc.toFixed(2));
 }
+
 
 
 
@@ -658,11 +634,10 @@ function populateForm(invoice) {
   if (invoice && invoice.items && invoice.items.length) {
     invoice.items.forEach(item => {
       addItemRow({
-        part_id: item.part_id,
-        quantity: item.quantity,
-        original_price: item.original_price,
-        discounted_price: item.discounted_price
-      });
+  part_id: item.part_id,
+  quantity: item.quantity,
+  price: item.discounted_price ?? item.original_price ?? 0
+});
     });
   } else {
     addItemRow();

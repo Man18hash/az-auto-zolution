@@ -46,19 +46,20 @@
       <div class="col-md-3">
         <label class="form-label">Vehicle</label>
         <select name="vehicle_id" id="vehicle_id" class="form-select">
-          <option value="">— walk-in or choose —</option>
-          @foreach($vehicles as $v)
-            <option value="{{ $v->id }}"
-              data-plate="{{ $v->plate_number }}"
-              data-model="{{ $v->model }}"
-              data-year="{{ $v->year }}"
-              data-color="{{ $v->color }}"
-              data-odometer="{{ $v->odometer }}"
-              {{ old('vehicle_id', $invoice->vehicle_id ?? '') == $v->id ? 'selected' : '' }}>
-              {{ $v->plate_number }}
-            </option>
-          @endforeach
-        </select>
+  <option value="">— walk-in or choose —</option>
+  @foreach($vehicles as $v)
+    <option value="{{ $v->id }}"
+      data-plate="{{ $v->plate_number }}"
+      data-model="{{ $v->model }}"
+      data-year="{{ $v->year }}"
+      data-color="{{ $v->color }}"
+      data-odometer="{{ $v->odometer }}"
+      {{ old('vehicle_id', $invoice->vehicle_id ?? '') == $v->id ? 'selected' : '' }}>
+      {{ $v->plate_number }}
+    </option>
+  @endforeach
+</select>
+
       </div>
       <div class="col-md-3">
         <label class="form-label">Manual Vehicle Name</label>
@@ -124,16 +125,15 @@
     <h4>Items</h4>
     <table class="table table-bordered" id="items-table">
       <thead>
-        <tr>
-          <th style="min-width:250px;">Item</th>
-          <th>Qty</th>
-          <th>Orig ₱</th>
-          <th>Disc ₱</th>
-          <th>Disc Val</th>
-          <th>Total ₱</th>
-          <th></th>
-        </tr>
-      </thead>
+  <tr>
+    <th style="min-width:250px;">Item</th>
+    <th>Qty</th>
+    <th>Price ₱</th>
+    <th>Total ₱</th>
+    <th></th>
+  </tr>
+</thead>
+
       <tbody></tbody>
       <tfoot>
         <tr>
@@ -173,7 +173,7 @@
       </div>
       <div class="col-md-3">
         <label class="form-label">Total Discount</label>
-        <input type="number" step="0.01" name="total_discount" class="form-control" readonly>
+        <input type="number" step="0.01" name="total_discount" class="form-control" >
       </div>
       <div class="col-md-3">
         <label class="form-label">VAT (12%)</label>
@@ -191,51 +191,48 @@
   {{-- ---------- Recent Service Orders (Last 48 Hours) ---------- --}}
   <h3 class="mt-5">Recent Service Orders</h3>
 
-  @php
-    $filtered = $history->where('source_type', 'service_order')
-      ->where('created_at', '>=', now()->subHours(48));
-  @endphp
-
-  @if($filtered->isEmpty())
-    <p>No service orders in the past 48 hours.</p>
-  @else
-    <table class="table table-striped">
-      <thead>
+@if($history->isEmpty())
+  <p>No service orders in the past 48 hours.</p>
+@else
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <th>Customer</th>
+        <th>Vehicle</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      @foreach($history as $h)
         <tr>
-          <th>Customer</th>
-          <th>Vehicle</th>
-          <th>Status</th>
-          <th>Actions</th>
+          <td>{{ $h->client->name ?? $h->customer_name }}</td>
+          <td>{{ $h->vehicle->plate_number ?? $h->vehicle_name }}</td>
+          <td>
+            <span class="badge bg-secondary">
+              {{ ucfirst(str_replace('_',' ', $h->source_type)) }}
+            </span>
+          </td>
+          <td class="d-flex align-items-center gap-2">
+            <a href="{{ route('cashier.serviceorder.view', $h->id) }}" class="btn btn-sm btn-info">View</a>
+            <a href="{{ route('cashier.serviceorder.edit', $h->id) }}" class="btn btn-sm btn-primary">Edit</a>
+            <form action="{{ route('cashier.serviceorder.update', $h->id) }}" method="POST" style="display:inline-flex;">
+              @csrf @method('PUT')
+              <select name="source_type" class="form-select form-select-sm btn-source-type" onchange="this.form.submit()">
+                <option value="service_order" {{ $h->source_type === 'service_order' ? 'selected' : '' }}>Service Order</option>
+                <option value="cancelled"     {{ $h->source_type === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                <option value="invoicing"     {{ $h->source_type === 'invoicing' ? 'selected' : '' }}>Invoicing</option>
+              </select>
+              <input type="hidden" name="quick_update" value="1" />
+            </form>
+          </td>
         </tr>
-      </thead>
-      <tbody>
-        @foreach($filtered as $h)
-          <tr>
-            <td>{{ $h->client->name ?? $h->customer_name }}</td>
-            <td>{{ $h->vehicle->plate_number ?? $h->vehicle_name }}</td>
-            <td>
-              <span class="badge bg-secondary">
-                {{ ucfirst(str_replace('_',' ',$h->source_type)) }}
-              </span>
-            </td>
-            <td class="d-flex gap-1">
-              <a href="{{ route('cashier.serviceorder.view', $h->id) }}" class="btn btn-sm btn-info">View</a>
-              <a href="{{ route('cashier.serviceorder.edit', $h->id) }}" class="btn btn-sm btn-primary">Edit</a>
-              <form action="{{ route('cashier.serviceorder.update', $h->id) }}" method="POST" style="display:inline-flex;align-items:center;">
-                @csrf @method('PUT')
-                <select name="source_type" class="form-select form-select-sm btn-source-type" onchange="this.form.submit()">
-                  <option value="service_order" {{ $h->source_type === 'service_order' ? 'selected' : '' }}>Service Order</option>
-                  <option value="cancelled"    {{ $h->source_type === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                  <option value="invoicing"    {{ $h->source_type === 'invoicing' ? 'selected' : '' }}>Invoicing</option>
-                </select>
-                <input type="hidden" name="quick_update" value="1" />
-              </form>
-            </td>
-          </tr>
-        @endforeach
-      </tbody>
-    </table>
-  @endif
+      @endforeach
+    </tbody>
+  </table>
+@endif
+
+
 </div>
 
 
@@ -244,6 +241,35 @@
 <script>
 const parts = @json($parts);
 const technicians = @json($technicians);
+
+const vehicles = @json($vehicles);
+
+// When client is selected, filter vehicles
+$('#client_id').on('change', function() {
+  const clientId = $(this).val();
+  const filteredVehicles = vehicles.filter(v => v.client_id == clientId);
+
+  $('#vehicle_id').empty().append('<option value="">— walk-in or choose —</option>');
+  filteredVehicles.forEach(v => {
+    $('#vehicle_id').append(`
+      <option value="${v.id}"
+        data-plate="${v.plate_number}"
+        data-model="${v.model}"
+        data-year="${v.year}"
+        data-color="${v.color}"
+        data-odometer="${v.odometer}">
+        ${v.plate_number}
+      </option>
+    `);
+  });
+
+  // Reinitialize select2
+  $('#vehicle_id').select2({
+    placeholder: '— walk-in or choose —',
+    allowClear: true
+  });
+});
+
 
 // VEHICLE DETAILS AUTOFILL
 $('#vehicle_id').on('change', function() {
@@ -260,9 +286,8 @@ function addItemRow(data = null) {
   const partId   = data && data.part_id             ? data.part_id             : '';
   const qty      = data && data.quantity            ? data.quantity            : 1;
   const orig     = data && data.original_price !== undefined ? data.original_price : '';
-  const disc     = data && data.discounted_price!==undefined ? data.discounted_price: '';
-  const discVal  = (orig && disc && qty) ? ((orig - disc)*qty).toFixed(2) : '0.00';
-  const lineTotal= (disc && qty)         ? (disc * qty).toFixed(2)    : '0.00';
+  const lineTotal = (orig && qty) ? (orig * qty).toFixed(2) : '0.00';
+
 
   const row = $(`<tr>
     <td>
@@ -287,11 +312,9 @@ function addItemRow(data = null) {
         </div>
       </div>
     </td>
-    <td><input name="items[${idx}][quantity]"        type="number" class="form-control form-control-sm" value="${qty}"></td>
-    <td><input name="items[${idx}][original_price]"  type="number" step="0.01" readonly class="form-control form-control-sm" value="${orig}"></td>
-    <td><input name="items[${idx}][discounted_price]"type="number" step="0.01" class="form-control form-control-sm" value="${disc}"></td>
-    <td class="col-disc-val">${discVal}</td>
-    <td class="col-line-total">${lineTotal}</td>
+    <td><input name="items[${idx}][quantity]" type="number" class="form-control form-control-sm" value="${qty}"></td>
+  <td><input name="items[${idx}][original_price]" type="number" step="0.01" class="form-control form-control-sm" value="${orig}"></td>
+  <td class="col-line-total">${lineTotal}</td>
     <td><button type="button" class="btn btn-sm btn-danger remove-btn">✕</button></td>
   </tr>`);
 
@@ -327,17 +350,18 @@ function addItemRow(data = null) {
   $partSelect.on('select2:select', e=>{
     const price = e.params.data.price||0;
     row.find('[name$="[original_price]"]').val(price.toFixed(2));
-    row.find('[name$="[discounted_price]"]').val(price.toFixed(2));
     row.find('[name$="[quantity]"]').val(1);
     recalc();
-  });
-  $partSelect.on('select2:clear', ()=>{
-    row.find('[name$="[original_price]"], [name$="[discounted_price]"]').val('');
+});
+$partSelect.on('select2:clear', ()=>{
+    row.find('[name$="[original_price]"]').val('');
     recalc();
-  });
+});
+
 
   // qty/discount inputs → recalc
-  row.find('[name$="[quantity]"], [name$="[discounted_price]"]').on('input', recalc);
+  row.find('[name$="[quantity]"], [name$="[original_price]"]').on('input', recalc);
+
 
   // remove row
   row.find('.remove-btn').on('click', ()=>{ row.remove(); recalc(); });
@@ -360,7 +384,7 @@ function addItemRow(data = null) {
   row.find('.save-manual').on('click', ()=>{
     const sell = parseFloat(row.find('[name$="[manual_selling_price]"]').val())||0;
     row.find('[name$="[original_price]"]').val(sell.toFixed(2));
-    row.find('[name$="[discounted_price]"]').val(sell.toFixed(2));
+
     row.find('[name$="[quantity]"]').val(1);
     recalc();
     row.find('.manual-fields').addClass('d-none');
@@ -400,46 +424,45 @@ function addJobRow(data = null) {
 function recalc() {
   let itemsTotal = 0;
   let jobsTotal  = 0;
-  let discount   = 0;
 
-  // 1) Sum up items & discounts
+  // Sum up items
   $('#items-table tbody tr').each(function() {
-    const $r    = $(this);
-    const q     = +$r.find('[name$="[quantity]"]').val() || 0;
-    const o     = +$r.find('[name$="[original_price]"]').val() || 0;
-    const dP    = +$r.find('[name$="[discounted_price]"]').val() || o;
-    const discV = q * (o - dP);
-    const lineT = q * dP;
-
-    discount   += discV;
+    const $r = $(this);
+    const q  = +$r.find('[name$="[quantity]"]').val() || 0;
+    const p  = +$r.find('[name$="[original_price]"]').val() || 0;
+    const lineT = q * p;
     itemsTotal += lineT;
-
-    $r.find('.col-disc-val').text(discV.toFixed(2));
     $r.find('.col-line-total').text(lineT.toFixed(2));
   });
 
-  // 2) Sum up jobs
+  // Sum up jobs
   $('#jobs-table tbody tr').each(function() {
     jobsTotal += +$(this).find('[name$="[total]"]').val() || 0;
   });
 
-  // 3) Combined total before VAT
-  const grand = itemsTotal + jobsTotal;
+  // Total before discount
+  const subtotal = itemsTotal + jobsTotal;
 
-  // 4) Reverse‐calc 12% VAT on the full amount:
-  //    net = grand ÷ 1.12  →  VAT = grand − net  →  VAT = grand * (0.12/1.12)
+  // Manual discount
+  const discount = parseFloat($('[name="total_discount"]').val()) || 0;
+
+  // Discounted grand total
+  const grand = subtotal - discount;
+
+  // VAT is on the net amount
   const vat = grand * (0.12 / 1.12);
 
-  // 5) Populate your fields
-  $('[name=subtotal]').val(grand.toFixed(2));        // items + jobs
-  $('[name=total_discount]').val(discount.toFixed(2));
-  $('[name=vat_amount]').val(vat.toFixed(2));        // now on entire invoice
-  $('[name=grand_total]').val(grand.toFixed(2));     // same as subtotal
+  // Fill fields
+  $('[name=subtotal]').val(subtotal.toFixed(2));
+  $('[name=vat_amount]').val(vat.toFixed(2));
+  $('[name=grand_total]').val(grand.toFixed(2));
 }
+
 
 // INIT (unchanged)
 $('#add-item').on('click', () => addItemRow());
 $('#add-job').on('click', () => addJobRow());
+$('[name="total_discount"]').on('input', recalc);
 $(function() {
   @if(isset($invoice) && $invoice->items && $invoice->items->count())
     @foreach($invoice->items as $item)
@@ -447,7 +470,7 @@ $(function() {
         part_id: '{{ $item->part_id }}',
         quantity: '{{ $item->quantity }}',
         original_price: '{{ $item->original_price }}',
-        discounted_price: '{{ $item->discounted_price }}'
+        
       });
     @endforeach
   @else
