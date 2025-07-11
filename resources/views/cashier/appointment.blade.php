@@ -37,98 +37,85 @@
     @if(isset($invoice)) @method('PUT') @endif
 
     {{-- Header Details --}}
-<h4 class="mt-4">Customer Information</h4>
-<div class="row g-3 mb-3">
-  <div class="col-md-3" id="client-dropdown-wrap">
-    <select name="client_id" id="client_id" class="form-select" placeholder="Client">
-      <option value="">Select client</option>
-      @foreach($clients as $c)
+    <h4 class="mt-4">Customer Information</h4>
+    <div class="row g-3 mb-3">
+      <div class="col-md-3" id="client-dropdown-wrap">
+      <select name="client_id" id="client_id" class="form-select" placeholder="Client">
+        <option value="">Select client</option>
+        @foreach($clients as $c)
       <option value="{{ $c->id }}" {{ old('client_id', $invoice->client_id ?? '') == $c->id ? 'selected' : '' }}>
-        {{ $c->name }}
+      {{ $c->name }}
       </option>
       @endforeach
-    </select>
-  </div>
-  <div class="col-md-3" id="manual-customer-wrap">
-    <input type="text" name="customer_name" id="customer_name" class="form-control" placeholder="Manual customer"
-      value="{{ old('customer_name', $invoice->customer_name ?? '') }}">
-  </div>
-</div>
-
-<h4 class="mt-4">Vehicle Information</h4>
-<div class="row g-3 mb-3">
-  <div class="col-md-3" id="vehicle-dropdown-wrap">
-    <select name="vehicle_id" id="vehicle_id" class="form-select">
-      <option value="">Select vehicle</option>
-      @foreach($vehicles as $v)
-      <option value="{{ $v->id }}" {{ old('vehicle_id', $invoice->vehicle_id ?? '') == $v->id ? 'selected' : '' }}>
-        {{ $v->plate_number }}
-      </option>
-      @endforeach
-    </select>
-  </div>
-  <div class="col-md-3" id="manual-vehicle-wrap">
-    <input type="text" name="vehicle_name" id="vehicle_name" class="form-control" placeholder="Manual vehicle"
-      value="{{ old('vehicle_name', $invoice->vehicle_name ?? '') }}">
-  </div>
-</div>
-<div class="row g-3 mb-3">
-  <div class="col-md-2">
-    <input type="text" name="plate" id="plate" class="form-control" placeholder="Plate"
-      value="{{ old('plate', isset($invoice->vehicle) ? $invoice->vehicle->plate_number : '') }}">
-  </div>
-  <div class="col-md-2">
-    <input type="text" name="model" id="model" class="form-control" placeholder="Model"
-      value="{{ old('model', isset($invoice->vehicle) ? $invoice->vehicle->model : '') }}">
-  </div>
-  <div class="col-md-2">
-    <input type="text" name="year" id="year" class="form-control" placeholder="Year"
-      value="{{ old('year', isset($invoice->vehicle) ? $invoice->vehicle->year : '') }}">
-  </div>
-  <div class="col-md-2">
-    <input type="text" name="color" id="color" class="form-control" placeholder="Color"
-      value="{{ old('color', isset($invoice->vehicle) ? $invoice->vehicle->color : '') }}">
-  </div>
-  <div class="col-md-2">
-    <input type="text" name="odometer" id="odometer" class="form-control" placeholder="Odometer"
-      value="{{ old('odometer', isset($invoice->vehicle) ? $invoice->vehicle->odometer : '') }}">
-  </div>
-  <div class="col-md-2">
-    <input type="date" name="appointment_date" class="form-control"
-      value="{{ old('appointment_date', isset($invoice->appointment_date) ? $invoice->appointment_date->format('Y-m-d') : '') }}">
-  </div>
-</div>
-
-<h4 class="mt-4">Payment & Contact</h4>
-<div class="row g-3 mb-3">
-  <div class="col-md-2">
-    <select name="payment_type" class="form-select" style="background:#e6ffe3">
-      <option value="">Payment Type</option>
-      <option value="cash" @selected(old('payment_type', $invoice->payment_type ?? '') == 'cash')>Cash</option>
-      <option value="debit" @selected(old('payment_type', $invoice->payment_type ?? '') == 'debit')>Debit</option>
-      <option value="credit" @selected(old('payment_type', $invoice->payment_type ?? '') == 'credit')>Credit</option>
-      <option value="non_cash" @selected(old('payment_type', $invoice->payment_type ?? '') == 'non_cash')>Non Cash</option>
-    </select>
-  </div>
-  <div class="col-md-2">
-    <input type="number" name="number" class="form-control" placeholder="Number"
-      value="{{ old('number', $invoice->number ?? '') }}">
-  </div>
-  <div class="col-md-4">
-    <input type="text" name="address" class="form-control" placeholder="Address"
-      value="{{ old('address', $invoice->address ?? '') }}">
-  </div>
-
-
-
+      </select>
       </div>
+      <div class="col-md-3" id="manual-customer-wrap">
+      <input type="text" name="customer_name" id="customer_name" class="form-control" placeholder="Manual customer"
+        value="{{ old('customer_name', $invoice->customer_name ?? '') }}">
+      </div>
+    </div>
+
+    <h4 class="mt-4">Vehicle Information</h4>
+    <div class="row g-3 mb-3">
+      <div class="col-md-3" id="vehicle-dropdown-wrap">
+      <select name="vehicle_id" id="vehicle_id" class="form-select">
+        <option value="">Select vehicle</option>
+        @foreach($vehicles as $v)
+      <option value="{{ $v->id }}" {{ old('vehicle_id', $invoice->vehicle_id ?? '') == $v->id ? 'selected' : '' }}>
+      {{ $v->plate_number }}
+      </option>
+      @endforeach
+      </select>
+      </div>
+      <div class="col-md-3" id="manual-vehicle-wrap">
+      <input type="text" name="vehicle_name" id="vehicle_name" class="form-control" placeholder="Manual vehicle"
+        value="{{ old('vehicle_name', $invoice->vehicle_name ?? '') }}">
+      </div>
+    </div>
+    <div class="row g-3 mb-3">
+      <div class="col-md-2">
+      <input type="text" name="plate" id="plate" class="form-control" placeholder="Plate"
+        value="{{ old('plate', isset($invoice->vehicle) ? $invoice->vehicle->plate_number : '') }}">
+      </div>
+      <div class="col-md-2">
+      <input type="text" name="model" id="model" class="form-control" placeholder="Model"
+        value="{{ old('model', isset($invoice->vehicle) ? $invoice->vehicle->model : '') }}">
+      </div>
+      <div class="col-md-2">
+      <input type="text" name="year" id="year" class="form-control" placeholder="Year"
+        value="{{ old('year', isset($invoice->vehicle) ? $invoice->vehicle->year : '') }}">
+      </div>
+      <div class="col-md-2">
+      <input type="text" name="color" id="color" class="form-control" placeholder="Color"
+        value="{{ old('color', isset($invoice->vehicle) ? $invoice->vehicle->color : '') }}">
+      </div>
+      <div class="col-md-2">
+      <input type="text" name="odometer" id="odometer" class="form-control" placeholder="Odometer"
+        value="{{ old('odometer', isset($invoice->vehicle) ? $invoice->vehicle->odometer : '') }}">
+      </div>
+      <div class="col-md-2">
+      <input type="date" name="appointment_date" class="form-control"
+        value="{{ old('appointment_date', isset($invoice->appointment_date) ? $invoice->appointment_date->format('Y-m-d') : '') }}">
+      </div>
+    </div>
 
    
 
-      
+
+      <div class="row g-3 mb-3">
+      <div class="col-md-6">
+        <textarea name="note" class="form-control"
+        placeholder="Appointment note">{{ old('note', $invoice->note ?? '') }}</textarea>
+      </div>
+      </div>
+    </div>
 
 
-      <button class="btn btn-primary">{{ isset($invoice) ? 'Update Appointment' : 'Save Appointment' }}</button>
+
+
+
+
+    <button class="btn btn-primary">{{ isset($invoice) ? 'Update Appointment' : 'Save Appointment' }}</button>
     </form>
 
     {{-- ---------- Recent Appointments ---------- --}}
@@ -138,7 +125,7 @@
     // Get all appointments and cancelled regardless of date for testing
     $filtered = $history->whereIn('source_type', ['appointment', 'cancelled']);
 
-  @endphp
+    @endphp
 
     @if($filtered->isEmpty())
     <p>No Appointment or cancelled records found.</p>
@@ -148,6 +135,7 @@
       <tr>
       <th>Customer</th>
       <th>Vehicle</th>
+      <th>Note</th>
       <th>Source Type</th>
       <th>Appointment Date</th>
       <th>Created</th>
@@ -159,6 +147,7 @@
       <tr>
       <td>{{ $h->client->name ?? $h->customer_name }}</td>
       <td>{{ $h->vehicle->plate_number ?? $h->vehicle_name }}</td>
+      <td>{{ $h->note }}</td>
       <td>
       @php
       $badgeClass = match ($h->source_type) {
@@ -202,7 +191,7 @@
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 
   <script>
-    
+
     const clients = @json($clients);  // Assuming clients data is available
     const vehicles = @json($vehicles);  // Assuming vehicles data is available
 
@@ -256,13 +245,13 @@
     $('#odometer').val(selected.data('odometer') || '');
     });
 
-    
+
 
     // JOB ROW HANDLING (unchanged)
-    
+
 
     // INIT (unchanged)
-    
+
 
 
 

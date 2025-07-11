@@ -97,6 +97,8 @@
         <th>Address</th>
         <th>Phone</th>
         <th>Email</th>
+        <th>Actions</th>
+
         </tr>
       </thead>
       <tbody>
@@ -106,6 +108,13 @@
       <td>{{ $c->address }}</td>
       <td>{{ $c->phone }}</td>
       <td>{{ $c->email }}</td>
+      <td>
+        <button class="btn btn-sm btn-warning edit-client" data-id="{{ $c->id }}" data-name="{{ $c->name }}"
+        data-address="{{ $c->address }}" data-phone="{{ $c->phone }}" data-email="{{ $c->email }}">
+        Edit
+        </button>
+      </td>
+
       </tr>
       @endforeach
       </tbody>
@@ -132,6 +141,8 @@
         <th>Year</th>
         <th>Color</th>
         <th>Odometer</th>
+        <th>Actions</th>
+
         </tr>
       </thead>
       <tbody>
@@ -145,10 +156,76 @@
       <td>{{ $v->year ?? '-' }}</td>
       <td>{{ $v->color ?? '-' }}</td>
       <td>{{ $v->odometer }}</td>
+      <td>
+        <button class="btn btn-sm btn-warning edit-vehicle" data-id="{{ $v->id }}"
+        data-client_id="{{ $v->client_id }}" data-plate_number="{{ $v->plate_number }}"
+        data-model="{{ $v->model }}" data-vin_chasis="{{ $v->vin_chasis }}"
+        data-manufacturer="{{ $v->manufacturer }}" data-year="{{ $v->year }}" data-color="{{ $v->color }}"
+        data-odometer="{{ $v->odometer }}">
+        Edit
+        </button>
+      </td>
+
+
       </tr>
       @endforeach
       </tbody>
       </table>
+      <!-- Edit Client Modal -->
+      <div class="modal fade" id="editClientModal" tabindex="-1">
+      <div class="modal-dialog">
+        <form id="editClientForm" class="modal-content">
+        @csrf
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Client</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="id">
+          <input type="text" name="name" class="form-control mb-2" placeholder="Name" required>
+          <input type="text" name="address" class="form-control mb-2" placeholder="Address">
+          <input type="text" name="phone" class="form-control mb-2" placeholder="Phone">
+          <input type="email" name="email" class="form-control mb-2" placeholder="Email">
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+        </form>
+      </div>
+      </div>
+
+      <!-- Edit Vehicle Modal -->
+      <div class="modal fade" id="editVehicleModal" tabindex="-1">
+      <div class="modal-dialog">
+        <form id="editVehicleForm" class="modal-content">
+        @csrf
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Vehicle</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="id">
+          <select name="client_id" class="form-select mb-2">
+          <option value="">Select Client</option>
+          @foreach($clients as $c)
+        <option value="{{ $c->id }}">{{ $c->name }}</option>
+      @endforeach
+          </select>
+          <input type="text" name="plate_number" class="form-control mb-2" placeholder="Plate #" required>
+          <input type="text" name="model" class="form-control mb-2" placeholder="Model">
+          <input type="text" name="vin_chasis" class="form-control mb-2" placeholder="VIN/Chasis">
+          <input type="text" name="manufacturer" class="form-control mb-2" placeholder="Manufacturer">
+          <input type="text" name="year" class="form-control mb-2" placeholder="Year">
+          <input type="text" name="color" class="form-control mb-2" placeholder="Color">
+          <input type="text" name="odometer" class="form-control mb-2" placeholder="Odometer">
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+        </form>
+      </div>
+      </div>
+
     </div>
     </div>
   </div>
@@ -208,7 +285,6 @@
     'clientsTable',
     'client-success',
     client => {
-      // Also add to vehicle select
       const vehicleSelect = document.querySelector('#vehicleForm select[name="client_id"]');
       if (vehicleSelect) {
       const opt = document.createElement('option');
@@ -217,13 +293,12 @@
       vehicleSelect.appendChild(opt);
       }
       return `
-      <td>${client.name}</td>
-      <td>${client.address || ''}</td>
-      <td>${client.phone || ''}</td>
-      <td>${client.email || ''}</td>`;
+        <td>${client.name}</td>
+        <td>${client.address || ''}</td>
+        <td>${client.phone || ''}</td>
+        <td>${client.email || ''}</td>`;
     }
     );
-
 
     ajaxForm(
     'vehicleForm',
@@ -253,5 +328,66 @@
       tr.style.display = [...tr.children].some(td => td.textContent.toLowerCase().includes(value)) ? '' : 'none';
     });
     });
+
+    // ✅ Edit Client
+    document.querySelectorAll('.edit-client').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const modal = document.getElementById('editClientModal');
+      modal.querySelector('[name=id]').value = btn.dataset.id;
+      modal.querySelector('[name=name]').value = btn.dataset.name;
+      modal.querySelector('[name=address]').value = btn.dataset.address;
+      modal.querySelector('[name=phone]').value = btn.dataset.phone;
+      modal.querySelector('[name=email]').value = btn.dataset.email;
+      new bootstrap.Modal(modal).show();
+    });
+    });
+
+    document.getElementById('editClientForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    let form = this;
+    let id = form.querySelector('[name=id]').value;
+    let data = Object.fromEntries(new FormData(form).entries());
+    let res = await fetch(`/clients/${id}`, {
+      method: 'PUT',
+      headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (res.ok) {
+      location.reload();
+    }
+    });
+
+    // ✅ Edit Vehicle
+    document.querySelectorAll('.edit-vehicle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const modal = document.getElementById('editVehicleModal');
+      modal.querySelector('[name=id]').value = btn.dataset.id;
+      modal.querySelector('[name=client_id]').value = btn.dataset.client_id;
+      modal.querySelector('[name=plate_number]').value = btn.dataset.plate_number;
+      modal.querySelector('[name=model]').value = btn.dataset.model;
+      modal.querySelector('[name=vin_chasis]').value = btn.dataset.vin_chasis;
+      modal.querySelector('[name=manufacturer]').value = btn.dataset.manufacturer;
+      modal.querySelector('[name=year]').value = btn.dataset.year;
+      modal.querySelector('[name=color]').value = btn.dataset.color;
+      modal.querySelector('[name=odometer]').value = btn.dataset.odometer;
+      new bootstrap.Modal(modal).show();
+    });
+    });
+
+    document.getElementById('editVehicleForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
+    let form = this;
+    let id = form.querySelector('[name=id]').value;
+    let data = Object.fromEntries(new FormData(form).entries());
+    let res = await fetch(`/vehicles/${id}`, {
+      method: 'PUT',
+      headers: { 'X-CSRF-TOKEN': token, 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (res.ok) {
+      location.reload();
+    }
+    });
   </script>
+
 @endsection

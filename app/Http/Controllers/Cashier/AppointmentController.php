@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace App\Http\Controllers\Cashier;
 
@@ -7,9 +7,7 @@ use Illuminate\Http\Request;
 use App\Models\Invoice;
 use App\Models\Client;
 use App\Models\Vehicle;
-use App\Models\Inventory; // your "parts"
-use App\Models\Technician;
-use Carbon\Carbon;
+
 
 class AppointmentController extends Controller
 {
@@ -19,14 +17,14 @@ class AppointmentController extends Controller
         // Fetch the required data
         $clients = Client::all();  // Get all clients
         $vehicles = Vehicle::all();  // Get all vehicles
-        
+
         // Fetch history of invoices related to clients and vehicles
         $history = Invoice::with(['client', 'vehicle'])
             ->orderBy('created_at', 'desc')
             ->get();
 
         // Pass data to the view
-       return view('cashier.appointment', compact('clients', 'vehicles', 'history'));
+        return view('cashier.appointment', compact('clients', 'vehicles', 'history'));
 
     }
 
@@ -35,7 +33,7 @@ class AppointmentController extends Controller
     {
         $clients = Client::all();  // Get all clients
         $vehicles = Vehicle::all();  // Get all vehicles
-        
+
         $history = collect([]);  // Initialize an empty collection for history
 
         // Return view with data
@@ -46,7 +44,6 @@ class AppointmentController extends Controller
     // Store a new (appointment)
     public function store(Request $request)
     {
-        // Validate the request data
         $request->validate([
             'client_id' => 'nullable|exists:clients,id',
             'vehicle_id' => 'nullable|exists:vehicles,id',
@@ -58,12 +55,20 @@ class AppointmentController extends Controller
             'color' => 'nullable|string',
             'odometer' => 'nullable|string',
             
-            'payment_type' => 'required|string',
             'appointment_date' => 'nullable|date',
-            
+            'note' => 'nullable|string',
         ]);
 
-        // Handle the vehicle logic (create or update a vehicle)
+        // Handle manual client creation
+        $clientId = $request->client_id;
+        if (!$clientId && $request->customer_name) {
+            $client = Client::create([
+                'name' => $request->customer_name,
+            ]);
+            $clientId = $client->id;
+        }
+
+        // Handle vehicle logic
         $vehicleId = $request->vehicle_id;
         if ($vehicleId) {
             $vehicle = Vehicle::find($vehicleId);
@@ -77,46 +82,37 @@ class AppointmentController extends Controller
                 ]);
             }
         } else if ($request->plate || $request->model || $request->year || $request->color || $request->odometer) {
-            // Create new vehicle if any field is provided
+            // Always use resolved $clientId here
             $vehicle = Vehicle::create([
                 'plate_number' => $request->plate,
                 'model' => $request->model,
                 'year' => $request->year,
                 'color' => $request->color,
                 'odometer' => $request->odometer,
-                'client_id' => $request->client_id, // Can be null
+                'client_id' => $clientId,
             ]);
             $vehicleId = $vehicle->id;
         } else {
             $vehicleId = null;
         }
 
-        // Create the invoice ( appointment)
+        // Create appointment invoice
         $invoice = Invoice::create([
-            'client_id' => $request->client_id,
+            'client_id' => $clientId,
             'vehicle_id' => $vehicleId,
             'customer_name' => $request->customer_name,
             'vehicle_name' => $request->vehicle_name,
-            'source_type' => 'appointment', // Used to identify the source of the invoice
+            'source_type' => 'appointment',
             'service_status' => 'pending',
             'status' => 'unpaid',
-           
-            'payment_type' => $request->payment_type,
-            'number' => $request->number,
-            'address' => $request->address,
+            
             'appointment_date' => $request->appointment_date,
-
+            'note' => $request->note,
         ]);
 
-        
-
-
-        // Save jobs for the invoice
-
-
-        // Redirect with success message
         return redirect()->route('cashier.appointment.index')->with('success', 'Appointment created!');
     }
+
 
     // Show the form for editing an existing quotation (appointment)
     public function edit($id)
@@ -126,7 +122,7 @@ class AppointmentController extends Controller
 
         $clients = Client::all();
         $vehicles = Vehicle::all();
-       
+
 
         // Fetch invoice history
         $history = Invoice::with(['client', 'vehicle'])
@@ -134,7 +130,7 @@ class AppointmentController extends Controller
             ->get();
 
         // Return the edit view with the data
-       return view('cashier.appointment', compact('invoice', 'clients', 'vehicles', 'history'));
+        return view('cashier.appointment', compact('invoice', 'clients', 'vehicles', 'history'));
 
     }
 
@@ -151,7 +147,7 @@ class AppointmentController extends Controller
             return redirect()->route('cashier.appointment.index')->with('success', 'Status updated!');
         }
 
-        // Full update logic for the invoice
+        // Validate
         $request->validate([
             'client_id' => 'nullable|exists:clients,id',
             'vehicle_id' => 'nullable|exists:vehicles,id',
@@ -162,12 +158,19 @@ class AppointmentController extends Controller
             'year' => 'nullable|string',
             'color' => 'nullable|string',
             'odometer' => 'nullable|string',
-            
-            'payment_type' => 'required|string',
-            'number' => 'nullable|string',
-            'address' => 'nullable|string',
+
             'appointment_date' => 'nullable|date',
+            'note' => 'nullable|string',
         ]);
+
+        // Handle manual client creation on update
+        $clientId = $request->client_id;
+        if (!$clientId && $request->customer_name) {
+            $client = Client::create([
+                'name' => $request->customer_name,
+            ]);
+            $clientId = $client->id;
+        }
 
         // Handle vehicle update logic
         $vehicleId = $request->vehicle_id;
@@ -183,14 +186,13 @@ class AppointmentController extends Controller
                 ]);
             }
         } else if ($request->plate || $request->model || $request->year || $request->color || $request->odometer) {
-            // Create new vehicle if any field is provided
             $vehicle = Vehicle::create([
                 'plate_number' => $request->plate,
                 'model' => $request->model,
                 'year' => $request->year,
                 'color' => $request->color,
                 'odometer' => $request->odometer,
-                'client_id' => $request->client_id,
+                'client_id' => $clientId,
             ]);
             $vehicleId = $vehicle->id;
         } else {
@@ -199,28 +201,27 @@ class AppointmentController extends Controller
 
         // Update the invoice
         $invoice->update([
-            'client_id' => $request->client_id,
+            'client_id' => $clientId,
             'vehicle_id' => $vehicleId,
             'customer_name' => $request->customer_name,
             'vehicle_name' => $request->vehicle_name,
             'source_type' => 'appointment',
             'service_status' => 'pending',
             'status' => 'unpaid',
-           
-            'payment_type' => $request->payment_type,
-            'appointment_date' => $request->appointment_date,
-        ]);
 
-       
+            'appointment_date' => $request->appointment_date,
+            'note' => $request->note,
+        ]);
 
         return redirect()->route('cashier.appointment.index')->with('success', 'Appointment updated!');
     }
+
 
     // Delete an appointment
     public function destroy($id)
     {
         $invoice = Invoice::findOrFail($id);
-       
+
         $invoice->delete();
 
         return redirect()->route('cashier.appointment.index')->with('success', 'Appointment deleted!');
