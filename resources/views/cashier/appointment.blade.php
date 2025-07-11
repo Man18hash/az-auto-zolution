@@ -5,6 +5,9 @@
 @section('title', isset($invoice) ? 'Edit Appointment' : 'New Appointment')
 
 @section('content')
+  <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+  <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <style>
     .select2-container {
@@ -19,6 +22,12 @@
     min-width: 120px;
     margin-left: 4px;
     }
+
+    #calendar {
+    max-width: 1000px;
+    margin: 40px auto;
+    min-height: 500px;
+    }
   </style>
   <div class="container mt-4">
     <h2 class="mb-4 text-center">{{ isset($invoice) ? 'Edit Appointment' : 'Create Appointment' }}</h2>
@@ -29,6 +38,32 @@
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     @endif
+
+
+    <button id="toggleCalendar" class="btn btn-secondary mb-3">Show Calendar</button>
+
+    <div id='calendar' style="display: none;"></div>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var calendarEl = document.getElementById('calendar');
+      window.calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      events: @json($events),
+      eventClick: function (info) {
+        info.jsEvent.preventDefault();
+        if (info.event.url) {
+        window.location.href = info.event.url;
+        }
+      }
+      });
+      window.calendar.render();
+    });
+
+
+
+    </script>
+
+
 
     <form
     action="{{ isset($invoice) ? route('cashier.appointment.update', $invoice->id) : route('cashier.appointment.store') }}"
@@ -99,40 +134,40 @@
       </div>
     </div>
 
-   
 
 
-      <div class="row g-3 mb-3">
+
+    <div class="row g-3 mb-3">
       <div class="col-md-6">
-        <textarea name="note" class="form-control"
+      <textarea name="note" class="form-control"
         placeholder="Appointment note">{{ old('note', $invoice->note ?? '') }}</textarea>
       </div>
-      </div>
     </div>
+  </div>
 
 
 
 
 
 
-    <button class="btn btn-primary">{{ isset($invoice) ? 'Update Appointment' : 'Save Appointment' }}</button>
-    </form>
+  <button class="btn btn-primary">{{ isset($invoice) ? 'Update Appointment' : 'Save Appointment' }}</button>
+  </form>
 
-    {{-- ---------- Recent Appointments ---------- --}}
-    <h3 class="mt-5">Recent Appointments</h3>
+  {{-- ---------- Recent Appointments ---------- --}}
+  <h3 class="mt-5">Recent Appointments</h3>
 
-    @php
+  @php
     // Get all appointments and cancelled regardless of date for testing
     $filtered = $history->whereIn('source_type', ['appointment', 'cancelled']);
 
-    @endphp
+  @endphp
 
-    @if($filtered->isEmpty())
+  @if($filtered->isEmpty())
     <p>No Appointment or cancelled records found.</p>
-    @else
+  @else
     <table class="table table-striped">
     <thead>
-      <tr>
+    <tr>
       <th>Customer</th>
       <th>Vehicle</th>
       <th>Note</th>
@@ -140,11 +175,11 @@
       <th>Appointment Date</th>
       <th>Created</th>
       <th>Actions</th>
-      </tr>
+    </tr>
     </thead>
     <tbody>
-      @foreach($filtered as $h)
-      <tr>
+    @foreach($filtered as $h)
+    <tr>
       <td>{{ $h->client->name ?? $h->customer_name }}</td>
       <td>{{ $h->vehicle->plate_number ?? $h->vehicle_name }}</td>
       <td>{{ $h->note }}</td>
@@ -180,11 +215,11 @@
       </form>
       </td>
 
-      </tr>
+    </tr>
     @endforeach
     </tbody>
     </table>
-    @endif
+  @endif
 
   </div>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -292,6 +327,17 @@
 
     // Initial check on page load
     $(toggleMutualFields);
+
+
+    $('#toggleCalendar').on('click', function () {
+    $('#calendar').toggle();
+    if ($('#calendar').is(':visible')) {
+      $(this).text('Hide Calendar');
+      window.calendar.render(); // make sure it draws properly after showing
+    } else {
+      $(this).text('Show Calendar');
+    }
+    });
 
   </script>
 
