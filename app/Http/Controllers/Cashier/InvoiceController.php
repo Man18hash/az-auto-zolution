@@ -62,7 +62,19 @@ class InvoiceController extends Controller
             'address' => 'nullable|string',
         ]);
 
-        // Vehicle logic
+        // ✅ Automatically create client if none selected but manual name exists
+        $clientId = $request->client_id;
+        if (!$clientId && $request->customer_name) {
+            $client = Client::create([
+                'name' => $request->customer_name,
+                'address' => $request->address,
+                'phone' => null,
+                'email' => null,
+            ]);
+            $clientId = $client->id;
+        }
+
+        // ✅ Vehicle logic
         $vehicleId = $request->vehicle_id;
         if ($vehicleId) {
             $vehicle = Vehicle::find($vehicleId);
@@ -82,7 +94,7 @@ class InvoiceController extends Controller
                 'year' => $request->year,
                 'color' => $request->color,
                 'odometer' => $request->odometer,
-                'client_id' => $request->client_id,
+                'client_id' => $clientId,  // ✅ link to possibly new client
             ]);
             $vehicleId = $vehicle->id;
         } else {
@@ -90,7 +102,7 @@ class InvoiceController extends Controller
         }
 
         $invoice = Invoice::create([
-            'client_id' => $request->client_id,
+            'client_id' => $clientId,
             'vehicle_id' => $vehicleId,
             'customer_name' => $request->customer_name,
             'vehicle_name' => $request->vehicle_name,
@@ -107,8 +119,7 @@ class InvoiceController extends Controller
             'address' => $request->address,
         ]);
 
-        // Save items
-        // Update items (delete old, add new)
+        // ✅ Items & Jobs remain same...
         $invoice->items()->delete();
         if ($request->has('items')) {
             foreach ($request->items as $item) {
@@ -124,23 +135,18 @@ class InvoiceController extends Controller
                     'discount_value' => 0,
                     'line_total' => $item['quantity'] * ($item['price'] ?? ($item['manual_price'] ?? 0)),
                 ]);
-
             }
         }
-
-        // Save jobs
         if ($request->has('jobs')) {
             foreach ($request->jobs as $job) {
-                $techId = !empty($job['technician_id']) ? $job['technician_id'] : null;
                 $invoice->jobs()->create([
                     'job_description' => $job['job_description'] ?? '',
-                    'technician_id' => $techId,
+                    'technician_id' => $job['technician_id'] ?? null,
                     'total' => $job['total'] ?? 0,
                 ]);
             }
         }
 
-        // Inventory deduction if paid
         if ($invoice->status === 'paid') {
             foreach ($invoice->items as $item) {
                 $inventory = Inventory::find($item->part_id);
@@ -152,6 +158,7 @@ class InvoiceController extends Controller
 
         return redirect()->route('cashier.invoice.index')->with('success', 'Invoice created!');
     }
+
 
     public function edit($id)
     {
@@ -214,6 +221,18 @@ class InvoiceController extends Controller
             'invoice_no' => 'required|string|unique:invoices,invoice_no,' . $invoice->id,
         ]);
 
+        // ✅ Ensure new client created if no client_id
+        $clientId = $request->client_id;
+        if (!$clientId && $request->customer_name) {
+            $client = Client::create([
+                'name' => $request->customer_name,
+                'address' => $request->address,
+                'phone' => null,
+                'email' => null,
+            ]);
+            $clientId = $client->id;
+        }
+
         $vehicleId = $request->vehicle_id;
         if ($vehicleId) {
             $vehicle = Vehicle::find($vehicleId);
@@ -233,7 +252,7 @@ class InvoiceController extends Controller
                 'year' => $request->year,
                 'color' => $request->color,
                 'odometer' => $request->odometer,
-                'client_id' => $request->client_id,
+                'client_id' => $clientId,  // ✅ fixed
             ]);
             $vehicleId = $vehicle->id;
         } else {
@@ -241,7 +260,7 @@ class InvoiceController extends Controller
         }
 
         $invoice->update([
-            'client_id' => $request->client_id,
+            'client_id' => $clientId,
             'vehicle_id' => $vehicleId,
             'customer_name' => $request->customer_name,
             'vehicle_name' => $request->vehicle_name,

@@ -5,30 +5,26 @@
 @section('content')
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
-.select2-container { width: 100% !important; }
-.select2-dropdown { z-index: 10060; }
-.btn-source-type { min-width: 120px; margin-left: 4px; }
-
+/* General layout */
 body {
     background: #f6f8fa;
     font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
-  }
+}
 
-  .card {
+.card {
     border: none;
     border-radius: 1rem;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
     transition: transform 0.2s;
     background: white;
     margin-bottom: 1.5rem;
-  }
-
-  .card:hover {
+}
+.card:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-  }
+}
 
-  .card-header {
+.card-header {
     background: #4a90e2;
     color: white;
     font-weight: 600;
@@ -36,22 +32,22 @@ body {
     border-top-left-radius: 1rem;
     border-top-right-radius: 1rem;
     padding: 1rem 1.25rem;
-  }
+}
 
-  .form-control, .form-select {
+.form-control, .form-select {
     border-radius: 0.5rem;
     padding: 0.65rem 0.85rem;
     font-size: 0.95rem;
     border: 1px solid #ced4da;
     transition: border-color 0.3s, box-shadow 0.3s;
-  }
-
-  .form-control:focus, .form-select:focus {
+}
+.form-control:focus, .form-select:focus {
     border-color: #4a90e2;
     box-shadow: 0 0 0 0.15rem rgba(74,144,226,0.25);
-  }
+}
 
-  .btn-primary {
+/* Buttons */
+.btn-primary {
     border-radius: 0.5rem;
     padding: 0.65rem 1.5rem;
     font-weight: 500;
@@ -60,33 +56,87 @@ body {
     border: none;
     transition: background 0.3s;
     color: white;
-  }
-
-  .btn-primary:hover {
+}
+.btn-primary:hover {
     background: linear-gradient(135deg, #357ab8, #4a90e2);
-  }
+}
 
-  .table-hover tbody tr:hover {
-    background: #f0f7ff;
-  }
-
-  .badge {
-    font-size: 0.75rem;
-    padding: 0.35em 0.6em;
-  }
-
-  .btn-add {
+.btn-add {
     padding: 0.6rem 1.5rem;
     font-size: 0.95rem;
     transition: all 0.3s;
     border-radius: 0.5rem;
-  }
-
-  .btn-add:hover {
+}
+.btn-add:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-  }
+}
+
+/* Table rows hover */
+.table-hover tbody tr:hover {
+    background: #f0f7ff;
+}
+
+/* Badge for status */
+.badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.6em;
+}
+
+/* ➡ Custom styling for the items table input group */
+#items-table .input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Select2 container inside items table */
+#items-table .input-group .select2-container {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* Select2 selection height to align nicely */
+#items-table .select2-container--default .select2-selection--single {
+    height: 38px;
+    line-height: 38px;
+    border-radius: 0.5rem;
+    padding-left: 0.5rem;
+}
+#items-table .select2-selection__arrow {
+    height: 38px;
+}
+
+/* Truncate long text inside select2 */
+#items-table .select2-selection__rendered {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Manual button styling next to select2 */
+#items-table .manual-toggle {
+    padding: 0.45rem 0.9rem;
+    font-size: 0.85rem;
+    border-radius: 0.4rem;
+    white-space: nowrap;
+    background: #f6c23e;
+    color: #212529;
+    border: none;
+    cursor: pointer;
+}
+#items-table .manual-toggle:hover {
+    background: #e0b12f;
+}
+
+/* ➡ Keep select2 dropdown above all */
+.select2-dropdown { 
+    z-index: 10060; 
+}
+
 </style>
+
+
 
 <div class="container mt-4">
   <h2 class="mb-4 text-center">{{ isset($invoice) ? 'Edit Service Order' : 'Create Service Order' }}</h2>
@@ -414,21 +464,38 @@ function addItemRow(data = null) {
 
   // ─── select2 setup ───
   const select2Data = [
-    { id:'', text:'-- search part --', price:0 },
-    ...parts.map(p=>({
-      id: p.id,
-      text:`${p.item_name} - Stock: ${p.quantity}`,
-      price: Number(p.selling)
-    }))
-  ];
-  const $partSelect = row.find('.part-select');
-  $partSelect.select2({
-    data: select2Data,
-    placeholder: '-- search part --',
-    allowClear: true,
-    width: 'resolve',
-    dropdownParent: $('#items-table')
-  });
+  { id:'', text:'-- search part --', price:0 },
+  ...parts.map(p=>({
+    id: p.id,
+    text: `${p.item_name} - Stock: ${p.quantity}`,
+    price: Number(p.selling),
+    disabled: p.quantity <= 0  // disables select2 choice
+  }))
+];
+
+const $partSelect = row.find('.part-select');
+
+$partSelect.select2({
+  data: select2Data,
+  placeholder: '-- search part --',
+  allowClear: true,
+  dropdownAutoWidth: false, // important: disables auto-stretch
+  width: 'style',           // use the style width (from .form-select style)
+  dropdownParent: $('#items-table'),
+  templateResult: function (data) {
+    if (!data.id) return data.text;
+    if (data.disabled) {
+      return $('<span style="color:#dc3545;">' + data.text + ' (Out of stock)</span>');
+    }
+    return $('<span>' + data.text + '</span>');
+  },
+  templateSelection: function (data) {
+    if (!data.id) return data.text;
+    return data.text;
+  }
+});
+
+
 
   // preselect on edit
   if(partId) {
