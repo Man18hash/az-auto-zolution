@@ -17,7 +17,8 @@ class QuotationController extends Controller
     {
         $clients = Client::all();
         $vehicles = Vehicle::all();
-        $parts = Inventory::select('id', 'item_name', 'quantity', 'selling')->get(); // Select quantity as the remaining stock
+        $parts = Inventory::select('id', 'item_name', 'quantity', 'selling', 'acquisition_price')->get();
+        // Select quantity as the remaining stock
         $technicians = Technician::all();
 
         $history = Invoice::with(['client', 'vehicle'])
@@ -28,16 +29,16 @@ class QuotationController extends Controller
     }
 
     public function create()
-{
-    $clients = Client::all();
-    $vehicles = Vehicle::all();
-    $parts = Inventory::all();
-    $technicians = Technician::all();
-    $history = collect([]);
-    $invoice = null; // 👈 ADD THIS LINE
+    {
+        $clients = Client::all();
+        $vehicles = Vehicle::all();
+        $parts = Inventory::all();
+        $technicians = Technician::all();
+        $history = collect([]);
+        $invoice = null; 
 
-    return view('cashier.quotation', compact('invoice', 'clients', 'vehicles', 'parts', 'technicians', 'history'));
-}
+        return view('cashier.quotation', compact('invoice', 'clients', 'vehicles', 'parts', 'technicians', 'history'));
+    }
 
 
     // Store a new quotation (invoice)
