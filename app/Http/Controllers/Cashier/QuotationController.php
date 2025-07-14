@@ -35,7 +35,7 @@ class QuotationController extends Controller
         $parts = Inventory::all();
         $technicians = Technician::all();
         $history = collect([]);
-        $invoice = null; // 👈 ADD THIS LINE
+        $invoice = null; 
 
         return view('cashier.quotation', compact('invoice', 'clients', 'vehicles', 'parts', 'technicians', 'history'));
     }
