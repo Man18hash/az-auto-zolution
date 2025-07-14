@@ -5,9 +5,114 @@
 @section('content')
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
-.select2-container { width: 100% !important; }
-.select2-dropdown { z-index: 10060; }
-.btn-source-type { min-width: 120px; margin-left: 4px;}
+  body {
+    background: #f6f8fa;
+    font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+  }
+
+  .card {
+    border: none;
+    border-radius: 1rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s;
+    background: white;
+    margin-bottom: 1.5rem;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  }
+
+  .card-header {
+    background: #4a90e2;
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
+    padding: 1rem 1.25rem;
+  }
+
+  .form-control,
+  .form-select {
+    border-radius: 0.5rem;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.95rem;
+    border: 1px solid #ced4da;
+    transition: border-color 0.3s, box-shadow 0.3s;
+  }
+
+  .form-control:focus,
+  .form-select:focus {
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 0.15rem rgba(74,144,226,0.25);
+  }
+
+  .btn-primary {
+    border-radius: 0.5rem;
+    padding: 0.65rem 1.5rem;
+    font-weight: 500;
+    font-size: 0.95rem;
+    background: linear-gradient(135deg, #4a90e2, #357ab8);
+    border: none;
+    transition: background 0.3s;
+    color: white;
+  }
+
+  .btn-primary:hover {
+    background: linear-gradient(135deg, #357ab8, #4a90e2);
+  }
+
+  .btn-success, .btn-info, .btn-warning, .btn-danger {
+    border-radius: 0.4rem;
+  }
+
+  .table th,
+  .table td {
+    vertical-align: middle;
+    font-size: 0.92rem;
+  }
+
+  .table-hover tbody tr:hover {
+    background: #f0f7ff;
+    cursor: pointer;
+  }
+
+  .badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.6em;
+  }
+
+  .select2-container .select2-selection--single {
+    height: 40px;
+    border-radius: 0.5rem;
+    border: 1px solid #ced4da;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: 38px;
+    right: 10px;
+  }
+  .form-control[readonly] {
+  background-color: #f8f9fa;
+  cursor: not-allowed;
+}
+.btn-add {
+  padding: 0.6rem 1.5rem;
+  font-size: 0.95rem;
+  transition: all 0.3s;
+  border-radius: 0.5rem;
+}
+.btn-add:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+.table tbody tr {
+  transition: background-color 0.3s;
+}
+
 </style>
 <div class="container mt-4">
   <h2 class="mb-4 text-center">{{ isset($invoice) ? 'Edit Quotation' : 'Create Quotation' }}</h2>
@@ -20,234 +125,256 @@
   @endif
 
   <form action="{{ isset($invoice) ? route('cashier.quotation.update', $invoice->id) : route('cashier.quotation.store') }}"
-        method="POST" id="quoteForm" autocomplete="off">
-    @csrf
-    @if(isset($invoice)) @method('PUT') @endif
+      method="POST" id="quoteForm" autocomplete="off">
+  @csrf
+  @if(isset($invoice)) @method('PUT') @endif
 
-    {{-- Header Details --}}
-    <div class="row g-3 mb-4">
-      <div class="col-md-3">
-        <label class="form-label">Client</label>
-        <select name="client_id" id="client_id" class="form-select">
-          <option value="">— walk‐in or choose —</option>
-          @foreach($clients as $c)
-            <option value="{{ $c->id }}"
-              {{ old('client_id', $invoice->client_id ?? '') == $c->id ? 'selected' : '' }}>
-              {{ $c->name }}
-            </option>
-          @endforeach
-        </select>
+  {{-- -------------------- Customer & Vehicle Details -------------------- --}}
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header">Customer & Vehicle Details</div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="form-label">Client</label>
+          <select name="client_id" id="client_id" class="form-select">
+            <option value="">— walk‐in or choose —</option>
+            @foreach($clients as $c)
+              <option value="{{ $c->id }}"
+                {{ old('client_id', $invoice->client_id ?? '') == $c->id ? 'selected' : '' }}>
+                {{ $c->name }}
+              </option>
+            @endforeach
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Manual Customer Name</label>
+          <input type="text" name="customer_name" class="form-control" placeholder="Enter walk-in name"
+                 value="{{ old('customer_name', $invoice->customer_name ?? '') }}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Vehicle</label>
+          <select name="vehicle_id" id="vehicle_id" class="form-select">
+            <option value="">— walk-in or choose —</option>
+            @foreach($vehicles as $v)
+              <option value="{{ $v->id }}"
+                data-plate="{{ $v->plate_number }}"
+                data-model="{{ $v->model }}"
+                data-year="{{ $v->year }}"
+                data-color="{{ $v->color }}"
+                data-odometer="{{ $v->odometer }}"
+                {{ old('vehicle_id', $invoice->vehicle_id ?? '') == $v->id ? 'selected' : '' }}>
+                {{ $v->plate_number }}
+              </option>
+            @endforeach
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Manual Vehicle Name</label>
+          <input type="text" name="vehicle_name" class="form-control" placeholder="Enter vehicle details"
+                 value="{{ old('vehicle_name', $invoice->vehicle_name ?? '') }}">
+        </div>
       </div>
-      <div class="col-md-3">
-        <label class="form-label">Manual Customer Name</label>
-        <input type="text" name="customer_name" class="form-control" placeholder="Enter walk-in name"
-               value="{{ old('customer_name', $invoice->customer_name ?? '') }}">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Vehicle</label>
-        <select name="vehicle_id" id="vehicle_id" class="form-select">
-          <option value="">— walk-in or choose —</option>
-          @foreach($vehicles as $v)
-            <option value="{{ $v->id }}"
-              data-plate="{{ $v->plate_number }}"
-              data-model="{{ $v->model }}"
-              data-year="{{ $v->year }}"
-              data-color="{{ $v->color }}"
-              data-odometer="{{ $v->odometer }}"
-              {{ old('vehicle_id', $invoice->vehicle_id ?? '') == $v->id ? 'selected' : '' }}>
-              {{ $v->plate_number }}
-            </option>
-          @endforeach
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Manual Vehicle Name</label>
-        <input type="text" name="vehicle_name" class="form-control" placeholder="Enter vehicle details"
-               value="{{ old('vehicle_name', $invoice->vehicle_name ?? '') }}">
+      <div class="row g-3 mt-2">
+        <div class="col-md-2">
+          <label class="form-label">Plate</label>
+          <input type="text" name="plate" id="plate" class="form-control"
+                 value="{{ old('plate', isset($invoice->vehicle) ? $invoice->vehicle->plate_number : '') }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Model</label>
+          <input type="text" name="model" id="model" class="form-control"
+                 value="{{ old('model', isset($invoice->vehicle) ? $invoice->vehicle->model : '') }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Year</label>
+          <input type="text" name="year" id="year" class="form-control"
+                 value="{{ old('year', isset($invoice->vehicle) ? $invoice->vehicle->year : '') }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Color</label>
+          <input type="text" name="color" id="color" class="form-control"
+                 value="{{ old('color', isset($invoice->vehicle) ? $invoice->vehicle->color : '') }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Odometer</label>
+          <input type="text" name="odometer" id="odometer" class="form-control"
+                 value="{{ old('odometer', isset($invoice->vehicle) ? $invoice->vehicle->odometer : '') }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Payment Type</label>
+          <select name="payment_type" class="form-select" style="background:#e6ffe3">
+            <option value="cash"      @selected(old('payment_type', $invoice->payment_type ?? '')=='cash')>Cash</option>
+            <option value="debit"     @selected(old('payment_type', $invoice->payment_type ?? '')=='debit')>Debit</option>
+            <option value="credit"    @selected(old('payment_type', $invoice->payment_type ?? '')=='credit')>Credit</option>
+            <option value="non_cash"  @selected(old('payment_type', $invoice->payment_type ?? '')=='non_cash')>Non Cash</option>
+          </select>
+        </div>
+        <div class="col-md-2">
+          <label class="form-label">Number</label>
+          <input type="number" name="number" class="form-control"
+                 value="{{ old('number', $invoice->number ?? '') }}">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Address</label>
+          <input type="text" name="address" class="form-control"
+                 value="{{ old('address', $invoice->address ?? '') }}">
+        </div>
       </div>
     </div>
-    <div class="row g-3 mb-4">
-      <div class="col-md-2">
-        <label class="form-label">Plate</label>
-        <input type="text" name="plate" id="plate" class="form-control"
-               value="{{ old('plate', isset($invoice->vehicle) ? $invoice->vehicle->plate_number : '') }}">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Model</label>
-        <input type="text" name="model" id="model" class="form-control"
-               value="{{ old('model', isset($invoice->vehicle) ? $invoice->vehicle->model : '') }}">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Year</label>
-        <input type="text" name="year" id="year" class="form-control"
-               value="{{ old('year', isset($invoice->vehicle) ? $invoice->vehicle->year : '') }}">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Color</label>
-        <input type="text" name="color" id="color" class="form-control"
-               value="{{ old('color', isset($invoice->vehicle) ? $invoice->vehicle->color : '') }}">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Odometer</label>
-        <input type="text" name="odometer" id="odometer" class="form-control"
-               value="{{ old('odometer', isset($invoice->vehicle) ? $invoice->vehicle->odometer : '') }}">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Payment Type</label>
-        <select name="payment_type" class="form-select" style="background:#e6ffe3">
-          <option value="cash"      @selected(old('payment_type', $invoice->payment_type ?? '')=='cash')>Cash</option>
-          <option value="debit"     @selected(old('payment_type', $invoice->payment_type ?? '')=='debit')>Debit</option>
-          <option value="credit"    @selected(old('payment_type', $invoice->payment_type ?? '')=='credit')>Credit</option>
-          <option value="non_cash"  @selected(old('payment_type', $invoice->payment_type ?? '')=='non_cash')>Non Cash</option>
-        </select>
-      </div>
-      <div class="col-md-2">
-  <label class="form-label fw-bold">Number</label>
-  <input
-    type="number"
-    name="number"
-    class="form-control"
-    value="{{ old('number', $invoice->number ?? '') }}"
-  >
-</div>
-<div class="col-md-4">
-  <label class="form-label fw-bold">Address</label>
-  <input
-    type="text"
-    name="address"
-    class="form-control"
-    value="{{ old('address', $invoice->address ?? '') }}"
-  >
-</div>
+  </div>
+
+  {{-- -------------------- Items Table -------------------- --}}
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header">Items</div>
+    <div class="card-body p-0">
+      <table class="table mb-0" id="items-table">
+        <thead>
+          <tr>
+            <th style="min-width:250px;">Item</th>
+            <th>Qty</th>
+            <th>Price ₱</th>
+            <th>Total ₱</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="5" class="text-end p-2">
+              <button type="button" id="add-item" class="btn btn-success btn-add shadow-sm">+ Add Item</button>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
     </div>
+  </div>
 
-    {{-- Items --}}
-    <h4>Items</h4>
-    <table class="table table-bordered" id="items-table">
-      <thead>
-        <tr>
-          <th style="min-width:250px;">Item</th>
-<th>Qty</th>
-<th>Price ₱</th>
-<th>Total ₱</th>
-<th></th>
+  {{-- -------------------- Jobs Table -------------------- --}}
+  <div class="card mb-4 shadow-sm">
+    <div class="card-header">Jobs</div>
+    <div class="card-body p-0">
+      <table class="table mb-0" id="jobs-table">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Technician</th>
+            <th>Total ₱</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+        <tfoot>
+          <tr>
+            <td colspan="4" class="text-end p-2">
+              <button type="button" id="add-job" class="btn btn-success btn-add shadow-sm">+ Add Job</button>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
 
-        </tr>
-      </thead>
-      <tbody></tbody>
-      <tfoot>
-        <tr>
-          <td colspan="7" class="text-end">
-            <button type="button" id="add-item" class="btn btn-sm btn-success">+ Add Item</button>
-          </td>
-        </tr>
-      </tfoot>
-    </table>
-
-    {{-- Jobs --}}
-    <h4>Jobs</h4>
-    <table class="table table-bordered" id="jobs-table">
-      <thead>
-        <tr>
-          <th>Description</th>
-          <th>Technician</th>
-          <th>Total ₱</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-      <tfoot>
-        <tr>
-          <td colspan="4" class="text-end">
-            <button type="button" id="add-job" class="btn btn-sm btn-success">+ Add Job</button>
-          </td>
-        </tr>
-      </tfoot>
-    </table>
-
-    {{-- Totals --}}
-    <div class="row g-3 mb-4">
+  {{-- -------------------- Totals -------------------- --}}
+  <div class="card mb-5 shadow-sm">
+  <div class="card-header">Totals Summary</div>
+  <div class="card-body">
+    <div class="row g-3">
       <div class="col-md-3">
-        <label class="form-label">Subtotal</label>
+        <label class="form-label fw-bold">Subtotal</label>
         <input type="number" step="0.01" name="subtotal" class="form-control" readonly>
       </div>
       <div class="col-md-3">
-        <label class="form-label">Total Discount</label>
+        <label class="form-label fw-bold">Total Discount</label>
         <input type="number" step="0.01" name="total_discount" class="form-control">
-
       </div>
       <div class="col-md-3">
-        <label class="form-label">VAT (12%)</label>
+        <label class="form-label fw-bold">VAT (12%)</label>
         <input type="number" step="0.01" name="vat_amount" class="form-control">
       </div>
       <div class="col-md-3">
-        <label class="form-label">Grand Total</label>
+        <label class="form-label fw-bold">Grand Total</label>
         <input type="number" step="0.01" name="grand_total" class="form-control" readonly>
       </div>
     </div>
+  </div>
+</div>
 
+
+  <div class="text-end">
     <button class="btn btn-primary">{{ isset($invoice) ? 'Update Quotation' : 'Save Quotation' }}</button>
-  </form>
+  </div>
+</form>
+<br>
+
 
   {{-- ---------- Recent Quotations (Last 48 Hours) ---------- --}}
-  <h3 class="mt-5">Recent Quotations</h3>
+<div class="card mb-5 shadow-sm">
+  <div class="card-header">Recent Quotations (Last 48 Hours)</div>
+  <div class="card-body p-0">
+    @php
+      $filtered = $history->whereIn('source_type', ['quotation','cancelled'])
+                 ->where('created_at', '>=', now()->subHours(48));
+    @endphp
 
-  @php
-    // Only show where source_type is "quotation" or "cancelled"
-    $filtered = $history->whereIn('source_type', ['quotation','cancelled'])
-      ->where('created_at', '>=', now()->subHours(48));
-  @endphp
+    @if($filtered->isEmpty())
+      <div class="p-4 text-center text-muted">
+        No quotations or cancelled records in the past 48 hours.
+      </div>
+    @else
+      <div class="table-responsive">
+        <table class="table mb-0 table-hover align-middle">
+          <thead style="background: #4a90e2; color: white;">
+            <tr>
+              <th>Customer</th>
+              <th>Vehicle</th>
+              <th>Source Type</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            @foreach($filtered as $h)
+              <tr>
+                <td>{{ $h->client->name ?? $h->customer_name }}</td>
+                <td>{{ $h->vehicle->plate_number ?? $h->vehicle_name }}</td>
+                <td>
+                  @php
+                    $badgeClass = [
+                      'quotation'    => 'bg-warning text-dark',
+                      'cancelled'    => 'bg-danger',
+                      'appointment'  => 'bg-info text-dark',
+                      'service_order'=> 'bg-secondary',
+                      'invoicing'    => 'bg-success text-white'
+                    ];
+                  @endphp
+                  <span class="badge {{ $badgeClass[$h->source_type] ?? 'bg-secondary' }}">
+                    {{ ucfirst(str_replace('_',' ',$h->source_type)) }}
+                  </span>
+                </td>
+                <td class="d-flex gap-1">
+                  <a href="{{ route('cashier.quotation.view', $h->id) }}" class="btn btn-sm btn-outline-info">View</a>
+                  <a href="{{ route('cashier.quotation.edit', $h->id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                  <form action="{{ route('cashier.quotation.update', $h->id) }}" method="POST"
+                        style="display:inline-flex;align-items:center;">
+                    @csrf @method('PUT')
+                    <select name="source_type" class="form-select form-select-sm btn-source-type"
+                            onchange="this.form.submit()">
+                      <option value="quotation"    {{ $h->source_type === 'quotation' ? 'selected' : '' }}>Quotation</option>
+                      <option value="cancelled"    {{ $h->source_type === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
+                      <option value="service_order"{{ $h->source_type === 'service_order' ? 'selected' : '' }}>Service Order</option>
+                      <option value="invoicing"    {{ $h->source_type === 'invoicing' ? 'selected' : '' }}>Invoicing</option>
+                    </select>
+                    <input type="hidden" name="quick_update" value="1" />
+                  </form>
+                </td>
+              </tr>
+            @endforeach
+          </tbody>
+        </table>
+      </div>
+    @endif
+  </div>
+</div>
 
-  @if($filtered->isEmpty())
-    <p>No quotations or cancelled in the past 48 hours.</p>
-  @else
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          <th>Customer</th>
-          <th>Vehicle</th>
-          <th>Source Type</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        @foreach($filtered as $h)
-          <tr>
-            <td>{{ $h->client->name ?? $h->customer_name }}</td>
-            <td>{{ $h->vehicle->plate_number ?? $h->vehicle_name }}</td>
-            <td>
-              @php
-                $badgeClass = [
-                  'quotation'    => 'bg-warning text-dark',
-                  'cancelled'    => 'bg-danger',
-                  'appointment'  => 'bg-info text-dark',
-                  'service_order'=> 'bg-secondary',
-                  'invoicing'    => 'bg-success text-white'
-                ];
-              @endphp
-              <span class="badge {{ $badgeClass[$h->source_type] ?? 'bg-secondary' }}">
-                {{ ucfirst(str_replace('_',' ',$h->source_type)) }}
-              </span>
-            </td>
-            <td class="d-flex gap-1">
-              <a href="{{ route('cashier.quotation.view', $h->id) }}" class="btn btn-sm btn-info">View</a>
-              <a href="{{ route('cashier.quotation.edit', $h->id) }}" class="btn btn-sm btn-primary">Edit</a>
-              <form action="{{ route('cashier.quotation.update', $h->id) }}" method="POST" style="display:inline-flex;align-items:center;">
-                @csrf @method('PUT')
-                <select name="source_type" class="form-select form-select-sm btn-source-type" onchange="this.form.submit()">
-                  <option value="quotation"    {{ $h->source_type === 'quotation' ? 'selected' : '' }}>Quotation</option>
-                  <option value="cancelled"    {{ $h->source_type === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                  <option value="service_order"{{ $h->source_type === 'service_order' ? 'selected' : '' }}>Service Order</option>
-                  <option value="invoicing"    {{ $h->source_type === 'invoicing' ? 'selected' : '' }}>Invoicing</option>
-                </select>
-                <input type="hidden" name="quick_update" value="1" />
-              </form>
-            </td>
-          </tr>
-        @endforeach
-      </tbody>
-    </table>
-  @endif
 </div>
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -467,16 +594,6 @@ if (data?.manual_part_name) {
     row.find('.manual-fields').addClass('d-none');
     row.find('.input-group').removeClass('d-none');
   });
-<<<<<<< HEAD
-  row.find('.save-manual').on('click', ()=>{
-    const sell = parseFloat(row.find('[name$="[manual_selling_price]"]').val())||0;
-    row.find('[name$="[original_price]"]').val(sell.toFixed(2));
-    row.find('[name$="[quantity]"]').val(1);
-    recalc();
-    row.find('.manual-fields').addClass('d-none');
-    row.find('.input-group').removeClass('d-none');
-  });
-=======
 
  // save manual entry POPULATE
  row.find('.save-manual').on('click', ()=>{
@@ -498,7 +615,6 @@ if (data?.manual_part_name) {
   row.find('.manual-fields').addClass('d-none');
   row.find('.input-group').removeClass('d-none');
 });
->>>>>>> f672cc7e0c0cd7694ae824b2cbf7d12e47d400d2
 
   $('#items-table tbody').append(row);
   recalc();
@@ -578,9 +694,11 @@ $('#quoteForm').on('submit', function(e) {
   // INIT (unchanged)
   $('#add-item').on('click', () => addItemRow());
   $('#add-job').on('click', () => addJobRow());
+
+  $('[name="total_discount"]').on('input', recalc);
   $(function() {
-<<<<<<< HEAD
-    @if(isset($invoice) && $invoice->items && $invoice->items->count())
+    @if(!empty($invoice) && $invoice->items && $invoice->items->count())
+
       @foreach($invoice->items as $item)
         addItemRow({
           part_id: '{{ $item->part_id }}',
@@ -592,25 +710,6 @@ $('#quoteForm').on('submit', function(e) {
     @else
       addItemRow();
     @endif
-=======
- @if(isset($invoice) && $invoice->items && $invoice->items->count())
-  @foreach($invoice->items as $item)
-    addItemRow({
-      part_id:                  '{{ $item->part_id }}',
-      quantity:                 '{{ $item->quantity }}',
-      original_price:           '{{ $item->original_price }}',
-      discounted_price:         '{{ $item->discounted_price }}',
-      manual_part_name:         '{{ $item->manual_part_name  ?? '' }}',
-      manual_serial_number:     '{{ $item->manual_serial_number ?? '' }}',
-      manual_acquisition_price: '{{ $item->manual_acquisition_price ?? '' }}',
-      manual_selling_price:     '{{ $item->manual_selling_price ?? '' }}'
-    });
-  @endforeach
-@else
-  addItemRow();
-@endif
-
->>>>>>> f672cc7e0c0cd7694ae824b2cbf7d12e47d400d2
 
     @if(isset($invoice) && $invoice->jobs && $invoice->jobs->count())
       @foreach($invoice->jobs as $job)

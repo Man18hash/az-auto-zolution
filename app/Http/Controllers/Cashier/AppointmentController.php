@@ -15,30 +15,47 @@ class AppointmentController extends Controller
     public function index()
     {
         // Fetch the required data
-        $clients = Client::all();  // Get all clients
-        $vehicles = Vehicle::all();  // Get all vehicles
+        $clients = Client::all();
+        $vehicles = Vehicle::all();
 
         // Fetch history of invoices related to clients and vehicles
         $history = Invoice::with(['client', 'vehicle'])
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Pass data to the view
-        return view('cashier.appointment', compact('clients', 'vehicles', 'history'));
+        // Build events for FullCalendar
+        $events = [];
+        foreach ($history as $h) {
+            if ($h->appointment_date) {
+                $events[] = [
+                    'title' => ($h->client->name ?? $h->customer_name)
+                        . ($h->vehicle ? ' - ' . $h->vehicle->plate_number : ''),
+                    'start' => $h->appointment_date,
+                    'url' => route('cashier.appointment.view', $h->id),
+                    'color' => match ($h->source_type) {
+                        'cancelled' => '#dc3545',     // red
+                        'service_order' => '#6c757d', // gray
+                        'invoicing' => '#28a745',     // green
+                        default => '#0dcaf0',         // cyan for appointments
+                    }
+                ];
+            }
+        }
 
+        // Pass data to the view
+        return view('cashier.appointment', compact('clients', 'vehicles', 'history', 'events'));
     }
+
 
     // Show the form to create a new appointment
     public function create()
     {
-        $clients = Client::all();  // Get all clients
-        $vehicles = Vehicle::all();  // Get all vehicles
+        $clients = Client::all();
+        $vehicles = Vehicle::all();
+        $history = collect([]);
+        $events = [];
 
-        $history = collect([]);  // Initialize an empty collection for history
-
-        // Return view with data
-        return view('cashier.appointment', compact('clients', 'vehicles', 'history'));
-
+        return view('cashier.appointment', compact('clients', 'vehicles', 'history', 'events'));
     }
 
     // Store a new (appointment)
@@ -54,7 +71,7 @@ class AppointmentController extends Controller
             'year' => 'nullable|string',
             'color' => 'nullable|string',
             'odometer' => 'nullable|string',
-            
+
             'appointment_date' => 'nullable|date',
             'note' => 'nullable|string',
         ]);
@@ -105,7 +122,7 @@ class AppointmentController extends Controller
             'source_type' => 'appointment',
             'service_status' => 'pending',
             'status' => 'unpaid',
-            
+
             'appointment_date' => $request->appointment_date,
             'note' => $request->note,
         ]);
@@ -117,21 +134,33 @@ class AppointmentController extends Controller
     // Show the form for editing an existing quotation (appointment)
     public function edit($id)
     {
-        // Fetch the invoice along with its items and jobs
         $invoice = Invoice::findOrFail($id);
-
         $clients = Client::all();
         $vehicles = Vehicle::all();
-
-
-        // Fetch invoice history
         $history = Invoice::with(['client', 'vehicle'])
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Return the edit view with the data
-        return view('cashier.appointment', compact('invoice', 'clients', 'vehicles', 'history'));
+        // Build events
+        $events = [];
+        foreach ($history as $h) {
+            if ($h->appointment_date) {
+                $events[] = [
+                    'title' => ($h->client->name ?? $h->customer_name)
+                        . ($h->vehicle ? ' - ' . $h->vehicle->plate_number : ''),
+                    'start' => $h->appointment_date,
+                    'url' => route('cashier.appointment.view', $h->id),
+                    'color' => match ($h->source_type) {
+                        'cancelled' => '#dc3545',
+                        'service_order' => '#6c757d',
+                        'invoicing' => '#28a745',
+                        default => '#0dcaf0',
+                    }
+                ];
+            }
+        }
 
+        return view('cashier.appointment', compact('invoice', 'clients', 'vehicles', 'history', 'events'));
     }
 
     // Update an existing appointment

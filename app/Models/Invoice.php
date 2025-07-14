@@ -16,6 +16,7 @@ class Invoice extends Model
         'service_status',
         'status',
         'appointment_date',
+        'note', 
         'subtotal',
         'total_discount',
         'vat_amount',

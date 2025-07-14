@@ -16,10 +16,10 @@ class ClientController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name'    => 'required|string',
+            'name' => 'required|string',
             'address' => 'nullable|string',
-            'phone'   => 'nullable|string',
-            'email'   => 'nullable|email|unique:clients,email',
+            'phone' => 'nullable|string',
+            'email' => 'nullable|email|unique:clients,email',
         ]);
         $client = Client::create($data);
         return response()->json($client);
@@ -28,10 +28,10 @@ class ClientController extends Controller
     public function update(Request $request, Client $client)
     {
         $data = $request->validate([
-            'name'    => 'required|string',
+            'name' => 'required|string',
             'address' => 'nullable|string',
-            'phone'   => 'nullable|string',
-            'email'   => 'nullable|email|unique:clients,email,' . $client->id,
+            'phone' => 'nullable|string',
+            'email' => 'nullable|email|unique:clients,email,' . $client->id,
         ]);
         $client->update($data);
         return response()->json($client);
@@ -42,4 +42,18 @@ class ClientController extends Controller
         $client->delete();
         return response()->json(['deleted' => true]);
     }
+
+    public function vehicles($id)
+    {
+        $client = Client::with('vehicles')->findOrFail($id);
+
+        return response()->json([
+            'client' => $client,
+            'vehicles' => $client->vehicles
+        ]);
+    }
+
+
+
+
 }

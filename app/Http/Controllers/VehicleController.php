@@ -55,4 +55,16 @@ class VehicleController extends Controller
         $vehicle->delete();
         return response()->json(['deleted' => true]);
     }
+
+    public function vehicles($id)
+{
+    $client = Client::findOrFail($id);
+    $vehicles = $client->vehicles()->orderBy('created_at', 'desc')->get();
+
+    return response()->json([
+        'client' => $client,
+        'vehicles' => $vehicles
+    ]);
+}
+
 }

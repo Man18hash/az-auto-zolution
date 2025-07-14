@@ -3,6 +3,16 @@
 @section('title', isset($invoice) ? 'Edit Invoice' : 'New Invoice')
 
 @section('content')
+@php
+  $filteredUnpaid = $history->where('source_type', 'invoicing')
+    ->where('created_at', '>=', now()->subHours(48))
+    ->where('status', 'unpaid');
+
+  $filteredPaid = $history->where('source_type', 'invoicing')
+    ->where('created_at', '>=', now()->subHours(48))
+    ->where('status', 'paid');
+@endphp
+
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 <style>
 .select2-container { width: 100% !important; }
@@ -38,178 +48,189 @@
           @if(isset($invoice)) @method('PUT') @endif
 
           {{-- Header Details --}}
-          <div class="row g-3 mb-4">
-            <div class="col-md-3">
-              <label class="form-label fw-bold">Client</label>
-              <select name="client_id" id="client_id" class="form-select">
-                <option value="">— walk‐in or choose —</option>
-                @foreach($clients as $c)
-                  <option value="{{ $c->id }}"
-                    {{ old('client_id', $invoice->client_id ?? '') == $c->id ? 'selected' : '' }}>
-                    {{ $c->name }}
-                  </option>
-                @endforeach
-              </select>
+          <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-primary text-white">
+              Client & Vehicle Details
             </div>
-            <div class="col-md-3">
-              <label class="form-label fw-bold">Manual Customer Name</label>
-              <input type="text" name="customer_name" class="form-control" placeholder="Enter walk-in name"
-                     value="{{ old('customer_name', $invoice->customer_name ?? '') }}">
-            </div>
-            <div class="col-md-3">
-              <label class="form-label fw-bold">Vehicle</label>
-              <select name="vehicle_id" id="vehicle_id" class="form-select">
-                <option value="">— walk-in or choose —</option>
-                @foreach($vehicles as $v)
-                  <option value="{{ $v->id }}"
-                    data-plate="{{ $v->plate_number }}"
-                    data-model="{{ $v->model }}"
-                    data-year="{{ $v->year }}"
-                    data-color="{{ $v->color }}"
-                    data-odometer="{{ $v->odometer }}"
-                    {{ old('vehicle_id', $invoice->vehicle_id ?? '') == $v->id ? 'selected' : '' }}>
-                    {{ $v->plate_number }}
-                  </option>
-                @endforeach
-              </select>
-            </div>
-            <div class="col-md-3">
-              <label class="form-label fw-bold">Manual Vehicle Name</label>
-              <input type="text" name="vehicle_name" class="form-control" placeholder="Enter vehicle details"
-                     value="{{ old('vehicle_name', $invoice->vehicle_name ?? '') }}">
-            </div>
-          </div>
-          <div class="row g-3 mb-4">
-            <div class="col-md-2">
-              <label class="form-label fw-bold">Plate</label>
-              <input type="text" name="plate" id="plate" class="form-control"
-                     value="{{ old('plate', isset($invoice->vehicle) ? $invoice->vehicle->plate_number : '') }}">
-            </div>
-            <div class="col-md-2">
-              <label class="form-label fw-bold">Model</label>
-              <input type="text" name="model" id="model" class="form-control"
-                     value="{{ old('model', isset($invoice->vehicle) ? $invoice->vehicle->model : '') }}">
-            </div>
-            <div class="col-md-2">
-              <label class="form-label fw-bold">Year</label>
-              <input type="text" name="year" id="year" class="form-control"
-                     value="{{ old('year', isset($invoice->vehicle) ? $invoice->vehicle->year : '') }}">
-            </div>
-            <div class="col-md-2">
-              <label class="form-label fw-bold">Color</label>
-              <input type="text" name="color" id="color" class="form-control"
-                     value="{{ old('color', isset($invoice->vehicle) ? $invoice->vehicle->color : '') }}">
-            </div>
-            <div class="col-md-2">
-              <label class="form-label fw-bold">Odometer</label>
-              <input type="text" name="odometer" id="odometer" class="form-control"
-                     value="{{ old('odometer', isset($invoice->vehicle) ? $invoice->vehicle->odometer : '') }}">
-            </div>
-            <div class="col-md-2">
-              <label class="form-label fw-bold">Payment Type</label>
-              <select name="payment_type" class="form-select" style="background:#e6ffe3">
-                <option value="cash"      @selected(old('payment_type', $invoice->payment_type ?? '')=='cash')>Cash</option>
-                <option value="debit"     @selected(old('payment_type', $invoice->payment_type ?? '')=='debit')>Debit</option>
-                <option value="credit"    @selected(old('payment_type', $invoice->payment_type ?? '')=='credit')>Credit</option>
-                <option value="non_cash"  @selected(old('payment_type', $invoice->payment_type ?? '')=='non_cash')>Non Cash</option>
-              </select>
-            </div>
-            <div class="col-md-2">
-              <label class="form-label fw-bold">Status</label>
-              <select name="status" class="form-select">
-                <option value="unpaid"   @selected(old('status', $invoice->status ?? '') == 'unpaid')>Unpaid</option>
-                <option value="paid"     @selected(old('status', $invoice->status ?? '') == 'paid')>Paid</option>
-                <option value="cancelled"@selected(old('status', $invoice->status ?? '') == 'cancelled')>Cancelled</option>
-                <option value="voided"   @selected(old('status', $invoice->status ?? '') == 'voided')>Voided</option>
-              </select>
-            </div>
-            <div class="col-md-2">
-              <label class="form-label fw-bold">Service Status</label>
-              <select name="service_status" class="form-select">
-                <option value="pending"      @selected(old('service_status', $invoice->service_status ?? '') == 'pending')>Pending</option>
-                <option value="in_progress"  @selected(old('service_status', $invoice->service_status ?? '') == 'in_progress')>In Progress</option>
-                <option value="done"         @selected(old('service_status', $invoice->service_status ?? '') == 'done')>Done</option>
-              </select>
-            </div>
-            <div class="col-md-2">
-              <label class="form-label fw-bold">Source Type</label>
-              <input type="text" class="form-control" value="{{ old('source_type', $invoice->source_type ?? 'invoicing') }}" readonly>
-              <input type="hidden" name="source_type" value="{{ old('source_type', $invoice->source_type ?? 'invoicing') }}">
-            </div>
-            <div class="col-md-2">
-  <label class="form-label fw-bold">Number</label>
-  <input
-    type="number"
-    name="number"
-    class="form-control"
-    value="{{ old('number', $invoice->number ?? '') }}"
-  >
-</div>
-<div class="col-md-4">
-  <label class="form-label fw-bold">Address</label>
-  <input
-    type="text"
-    name="address"
-    class="form-control"
-    value="{{ old('address', $invoice->address ?? '') }}"
-  >
-</div>
-          </div>
-          <div class="col-md-2">
-            <label class="form-label fw-bold">Invoice No</label>
-            <input
-            type="text"
-            name="invoice_no"
-            class="form-control"
-            placeholder="INV-2025-001"
-            value="{{ old('invoice_no', $invoice->invoice_no ?? '') }}"
-            required
-            >
-          </div>
+            <div class="card-body p-3">
+              <div class="row g-3 mb-3">
+                <div class="col-md-3">
+                  <label class="form-label fw-bold">Client</label>
+                  <select name="client_id" id="client_id" class="form-select">
+                    <option value="">— walk‐in or choose —</option>
+                    @foreach($clients as $c)
+                      <option value="{{ $c->id }}"
+                        {{ old('client_id', $invoice->client_id ?? '') == $c->id ? 'selected' : '' }}>
+                        {{ $c->name }}
+                      </option>
+                    @endforeach
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-bold">Manual Customer Name</label>
+                  <input type="text" name="customer_name" class="form-control" placeholder="Enter walk-in name"
+                         value="{{ old('customer_name', $invoice->customer_name ?? '') }}">
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-bold">Vehicle</label>
+                  <select name="vehicle_id" id="vehicle_id" class="form-select">
+                    <option value="">— walk-in or choose —</option>
+                    @foreach($vehicles as $v)
+                      <option value="{{ $v->id }}"
+                        data-plate="{{ $v->plate_number }}"
+                        data-model="{{ $v->model }}"
+                        data-year="{{ $v->year }}"
+                        data-color="{{ $v->color }}"
+                        data-odometer="{{ $v->odometer }}"
+                        {{ old('vehicle_id', $invoice->vehicle_id ?? '') == $v->id ? 'selected' : '' }}>
+                        {{ $v->plate_number }}
+                      </option>
+                    @endforeach
+                  </select>
+                </div>
+                <div class="col-md-3">
+                  <label class="form-label fw-bold">Manual Vehicle Name</label>
+                  <input type="text" name="vehicle_name" class="form-control" placeholder="Enter vehicle details"
+                         value="{{ old('vehicle_name', $invoice->vehicle_name ?? '') }}">
+                </div>
+              </div>
+
+              <div class="row g-3 mb-3">
+                <div class="col-md-2">
+                  <label class="form-label fw-bold">Plate</label>
+                  <input type="text" name="plate" id="plate" class="form-control"
+                         value="{{ old('plate', isset($invoice->vehicle) ? $invoice->vehicle->plate_number : '') }}">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label fw-bold">Model</label>
+                  <input type="text" name="model" id="model" class="form-control"
+                         value="{{ old('model', isset($invoice->vehicle) ? $invoice->vehicle->model : '') }}">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label fw-bold">Year</label>
+                  <input type="text" name="year" id="year" class="form-control"
+                         value="{{ old('year', isset($invoice->vehicle) ? $invoice->vehicle->year : '') }}">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label fw-bold">Color</label>
+                  <input type="text" name="color" id="color" class="form-control"
+                         value="{{ old('color', isset($invoice->vehicle) ? $invoice->vehicle->color : '') }}">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label fw-bold">Odometer</label>
+                  <input type="text" name="odometer" id="odometer" class="form-control"
+                         value="{{ old('odometer', isset($invoice->vehicle) ? $invoice->vehicle->odometer : '') }}">
+                </div>
+              </div>
+
+              <div class="row g-3 mb-3">
+                <div class="col-md-2">
+                  <label class="form-label fw-bold">Payment Type</label>
+                  <select name="payment_type" class="form-select" style="background:#e6ffe3">
+                    <option value="cash"      @selected(old('payment_type', $invoice->payment_type ?? '')=='cash')>Cash</option>
+                    <option value="debit"     @selected(old('payment_type', $invoice->payment_type ?? '')=='debit')>Debit</option>
+                    <option value="credit"    @selected(old('payment_type', $invoice->payment_type ?? '')=='credit')>Credit</option>
+                    <option value="non_cash"  @selected(old('payment_type', $invoice->payment_type ?? '')=='non_cash')>Non Cash</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label fw-bold">Status</label>
+                  <select name="status" class="form-select">
+                    <option value="unpaid"   @selected(old('status', $invoice->status ?? '') == 'unpaid')>Unpaid</option>
+                    <option value="paid"     @selected(old('status', $invoice->status ?? '') == 'paid')>Paid</option>
+                    <option value="cancelled"@selected(old('status', $invoice->status ?? '') == 'cancelled')>Cancelled</option>
+                    <option value="voided"   @selected(old('status', $invoice->status ?? '') == 'voided')>Voided</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label fw-bold">Service Status</label>
+                  <select name="service_status" class="form-select">
+                    <option value="pending"      @selected(old('service_status', $invoice->service_status ?? '') == 'pending')>Pending</option>
+                    <option value="in_progress"  @selected(old('service_status', $invoice->service_status ?? '') == 'in_progress')>In Progress</option>
+                    <option value="done"         @selected(old('service_status', $invoice->service_status ?? '') == 'done')>Done</option>
+                  </select>
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label fw-bold">Source Type</label>
+                  <input type="text" class="form-control" value="{{ old('source_type', $invoice->source_type ?? 'invoicing') }}" readonly>
+                  <input type="hidden" name="source_type" value="{{ old('source_type', $invoice->source_type ?? 'invoicing') }}">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label fw-bold">Number</label>
+                  <input type="number" name="number" class="form-control"
+                         value="{{ old('number', $invoice->number ?? '') }}">
+                </div>
+                <div class="col-md-2">
+                  <label class="form-label fw-bold">Invoice No</label>
+                  <input type="text" name="invoice_no" class="form-control" placeholder="INV-2025-001"
+                         value="{{ old('invoice_no', $invoice->invoice_no ?? '') }}" required>
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label fw-bold">Address</label>
+                  <input type="text" name="address" class="form-control"
+                         value="{{ old('address', $invoice->address ?? '') }}">
+                </div>
+              </div>
+            </div> {{-- end card-body --}}
+          </div> {{-- end card --}}
+
 
           {{-- Items --}}
-          <h4 class="fw-bold">Items</h4>
-          <table class="table table-bordered" id="items-table">
-            <thead>
-  <tr>
-    <th style="min-width:250px;">Item</th>
-    <th>Qty</th>
-    <th>Price ₱</th>
-    <th>Line Total ₱</th>
-    <th></th>
-  </tr>
-</thead>
+<div class="card mb-4 shadow-sm">
+  <div class="card-header bg-success text-white">
+    Items
+  </div>
+  <div class="card-body p-3">
+    <table class="table table-bordered" id="items-table">
+      <thead>
+        <tr>
+          <th style="min-width:250px;">Item</th>
+          <th>Qty</th>
+          <th>Price ₱</th>
+          <th>Line Total ₱</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="5" class="text-end">
+            <button type="button" id="add-item" class="btn btn-sm btn-success">+ Add Item</button>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
 
-            <tbody></tbody>
-            <tfoot>
-              <tr>
-                <td colspan="7" class="text-end">
-                  <button type="button" id="add-item" class="btn btn-sm btn-success">+ Add Item</button>
-                </td>
-              </tr>
-            </tfoot>
-          </table>
 
           {{-- Jobs --}}
-          <h4 class="fw-bold">Jobs</h4>
-          <table class="table table-bordered" id="jobs-table">
-            <thead>
-              <tr>
-                <th>Description</th>
-                <th>Technician</th>
-                <th>Total ₱</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-            <tfoot>
-              <tr>
-                <td colspan="4" class="text-end">
-                  <button type="button" id="add-job" class="btn btn-sm btn-success">+ Add Job</button>
-                </td>
-              </tr>
-            </tfoot>
-          </table>
+<div class="card mb-4 shadow-sm">
+  <div class="card-header bg-info text-white">
+    Jobs
+  </div>
+  <div class="card-body p-3">
+    <table class="table table-bordered" id="jobs-table">
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th>Technician</th>
+          <th>Total ₱</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+      <tfoot>
+        <tr>
+          <td colspan="4" class="text-end">
+            <button type="button" id="add-job" class="btn btn-sm btn-success">+ Add Job</button>
+          </td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
 
           {{-- Totals --}}
           <div class="row g-3 mb-4">
@@ -243,135 +264,117 @@
   </div>
 </div>
 
-{{-- Unpaid Invoices --}}
-<h3 class="mt-5 fw-bold">Recent Unpaid Invoices</h3>
-@php
-  $filteredUnpaid = $history->where('source_type', 'invoicing')
-    ->where('created_at', '>=', now()->subHours(48))
-    ->where('status', 'unpaid');
-@endphp
-
+{{-- UNPAID INVOICES --}}
+<h3 class="mt-5 fw-bold"><i class="bi bi-exclamation-circle text-warning"></i> Recent Unpaid Invoices</h3>
 @if($filteredUnpaid->isEmpty())
-  <p>No unpaid invoices.</p>
+  <div class="alert alert-info">No unpaid invoices in the past 48 hours.</div>
 @else
-  <table class="table table-striped">
-    <thead>
-      <tr>
-        <th>Customer</th>
-        <th>Vehicle</th>
-        <th>Payment Type</th>
-        <th>Service Status</th>
-        <th>Status</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      @foreach($filteredUnpaid as $h)
+  <div class="table-responsive shadow-sm rounded">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
         <tr>
-          <td>{{ $h->client->name ?? $h->customer_name }}</td>
-          <td>{{ $h->vehicle->plate_number ?? $h->vehicle_name }}</td>
-          <td>{{ ucfirst(str_replace('_', ' ', $h->payment_type)) }}</td>
-          <td>
-            <form action="{{ route('cashier.invoice.update', $h->id) }}" method="POST" style="display:inline;">
-              @csrf @method('PUT')
-              <input type="hidden" name="status" value="unpaid">
-              <input type="hidden" name="client_id" value="{{ $h->client_id }}">
-              <input type="hidden" name="vehicle_id" value="{{ $h->vehicle_id }}">
-              <input type="hidden" name="payment_type" value="{{ $h->payment_type }}">
-              <input type="hidden" name="customer_name" value="{{ $h->customer_name }}">
-              <input type="hidden" name="vehicle_name" value="{{ $h->vehicle_name }}">
-              <input type="hidden" name="plate" value="{{ $h->vehicle->plate_number ?? '' }}">
-              <input type="hidden" name="model" value="{{ $h->vehicle->model ?? '' }}">
-              <input type="hidden" name="year" value="{{ $h->vehicle->year ?? '' }}">
-              <input type="hidden" name="color" value="{{ $h->vehicle->color ?? '' }}">
-              <input type="hidden" name="odometer" value="{{ $h->vehicle->odometer ?? '' }}">
-              <input type="hidden" name="subtotal" value="{{ $h->subtotal }}">
-              <input type="hidden" name="total_discount" value="{{ $h->total_discount }}">
-              <input type="hidden" name="vat_amount" value="{{ $h->vat_amount }}">
-              <input type="hidden" name="grand_total" value="{{ $h->grand_total }}">
-              <select name="service_status" class="form-select form-select-sm d-inline w-auto" onchange="this.form.submit()">
-                <option value="pending"      {{ $h->service_status == 'pending' ? 'selected' : '' }}>Pending</option>
-                <option value="in_progress"  {{ $h->service_status == 'in_progress' ? 'selected' : '' }}>In Progress</option>
-                <option value="done"         {{ $h->service_status == 'done' ? 'selected' : '' }}>Done</option>
-              </select>
-            </form>
-          </td>
-          <td>
-            <span class="badge bg-secondary">Unpaid</span>
-          </td>
-          <td class="d-flex gap-1">
-            <a href="{{ route('cashier.invoice.view', $h->id) }}" class="btn btn-sm btn-info">Print</a>
-            <button 
-              class="btn btn-sm btn-primary btn-edit-invoice"
-              data-id="{{ $h->id }}"
-              data-url="{{ route('cashier.invoice.edit', $h->id) }}"
-            >Edit</button>
-            <form action="{{ route('cashier.invoice.update', $h->id) }}" method="POST" style="display:inline-flex;align-items:center;">
-              @csrf @method('PUT')
-              <input type="hidden" name="status" value="paid">
-              <input type="hidden" name="service_status" value="{{ $h->service_status }}">
-              <input type="hidden" name="client_id" value="{{ $h->client_id }}">
-              <input type="hidden" name="vehicle_id" value="{{ $h->vehicle_id }}">
-              <input type="hidden" name="payment_type" value="{{ $h->payment_type }}">
-              <input type="hidden" name="customer_name" value="{{ $h->customer_name }}">
-              <input type="hidden" name="vehicle_name" value="{{ $h->vehicle_name }}">
-              <input type="hidden" name="plate" value="{{ $h->vehicle->plate_number ?? '' }}">
-              <input type="hidden" name="model" value="{{ $h->vehicle->model ?? '' }}">
-              <input type="hidden" name="year" value="{{ $h->vehicle->year ?? '' }}">
-              <input type="hidden" name="color" value="{{ $h->vehicle->color ?? '' }}">
-              <input type="hidden" name="odometer" value="{{ $h->vehicle->odometer ?? '' }}">
-              <input type="hidden" name="subtotal" value="{{ $h->subtotal }}">
-              <input type="hidden" name="total_discount" value="{{ $h->total_discount }}">
-              <input type="hidden" name="vat_amount" value="{{ $h->vat_amount }}">
-              <input type="hidden" name="grand_total" value="{{ $h->grand_total }}">
-              <button type="submit" class="btn btn-sm btn-success">Mark as Paid</button>
-            </form>
-          </td>
+          <th>Customer</th>
+          <th>Vehicle</th>
+          <th>Payment</th>
+          <th>Service</th>
+          <th>Status</th>
+          <th class="text-end">Actions</th>
         </tr>
-      @endforeach
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        @foreach($filteredUnpaid as $h)
+          <tr>
+            <td>{{ $h->client->name ?? $h->customer_name }}</td>
+            <td>{{ $h->vehicle->plate_number ?? $h->vehicle_name }}</td>
+            <td>
+              <span class="badge bg-{{ $h->payment_type === 'cash' ? 'success' : ($h->payment_type === 'credit' ? 'primary' : 'secondary') }}">
+                {{ ucfirst(str_replace('_', ' ', $h->payment_type)) }}
+              </span>
+            </td>
+            <td>
+              <form action="{{ route('cashier.invoice.update', $h->id) }}" method="POST" class="d-inline">
+                @csrf @method('PUT')
+                <input type="hidden" name="status" value="unpaid">
+                <select name="service_status" class="form-select form-select-sm"
+                        onchange="this.form.submit()" data-bs-toggle="tooltip" title="Change Service Status">
+                  <option value="pending"      {{ $h->service_status == 'pending' ? 'selected' : '' }}>Pending</option>
+                  <option value="in_progress"  {{ $h->service_status == 'in_progress' ? 'selected' : '' }}>In Progress</option>
+                  <option value="done"         {{ $h->service_status == 'done' ? 'selected' : '' }}>Done</option>
+                </select>
+              </form>
+            </td>
+            <td><span class="badge bg-warning text-dark">Unpaid</span></td>
+            <td class="text-end">
+              <div class="btn-group">
+                <a href="{{ route('cashier.invoice.view', $h->id) }}"
+                   class="btn btn-sm btn-outline-info"
+                   data-bs-toggle="tooltip" title="Print Invoice">
+                  <i class="bi bi-printer"></i>
+                </a>
+                <button class="btn btn-sm btn-outline-primary btn-edit-invoice"
+                        data-id="{{ $h->id }}"
+                        data-url="{{ route('cashier.invoice.edit', $h->id) }}"
+                        data-bs-toggle="tooltip" title="Edit Invoice">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+                <form action="{{ route('cashier.invoice.update', $h->id) }}" method="POST" class="d-inline">
+                  @csrf @method('PUT')
+                  <input type="hidden" name="status" value="paid">
+                  <input type="hidden" name="service_status" value="{{ $h->service_status }}">
+                  <button type="submit" class="btn btn-sm btn-success" data-bs-toggle="tooltip" title="Mark as Paid">
+                    <i class="bi bi-check2-circle"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        @endforeach
+      </tbody>
+    </table>
+  </div>
 @endif
 
-{{-- Paid Invoices --}}
-<h3 class="mt-5 fw-bold">Recent Paid Invoices</h3>
-@php
-  $filteredPaid = $history->where('source_type', 'invoicing')
-    ->where('created_at', '>=', now()->subHours(48))
-    ->where('status', 'paid');
-@endphp
-
+{{-- PAID INVOICES --}}
+<h3 class="mt-5 fw-bold"><i class="bi bi-check-circle text-success"></i> Recent Paid Invoices</h3>
 @if($filteredPaid->isEmpty())
-  <p>No paid invoices in the past 48 hours.</p>
+  <div class="alert alert-info">No paid invoices in the past 48 hours.</div>
 @else
-  <table class="table table-striped">
-    <thead>
-      <tr>
-        <th>Customer</th>
-        <th>Vehicle</th>
-        <th>Payment Type</th>
-        <th>Service Status</th>
-        <th>Status</th>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      @foreach($filteredPaid as $h)
+  <div class="table-responsive shadow-sm rounded">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
         <tr>
-          <td>{{ $h->client->name ?? $h->customer_name }}</td>
-          <td>{{ $h->vehicle->plate_number ?? $h->vehicle_name }}</td>
-          <td>{{ ucfirst(str_replace('_', ' ', $h->payment_type)) }}</td>
-          <td>{{ ucfirst(str_replace('_', ' ', $h->service_status)) }}</td>
-          <td>
-            <span class="badge bg-success text-white">Paid</span>
-          </td>
-          <td>
-            <a href="{{ route('cashier.invoice.view', $h->id) }}" class="btn btn-sm btn-info">View</a>
-          </td>
+          <th>Customer</th>
+          <th>Vehicle</th>
+          <th>Payment</th>
+          <th>Service</th>
+          <th>Status</th>
+          <th class="text-end">Actions</th>
         </tr>
-      @endforeach
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        @foreach($filteredPaid as $h)
+          <tr>
+            <td>{{ $h->client->name ?? $h->customer_name }}</td>
+            <td>{{ $h->vehicle->plate_number ?? $h->vehicle_name }}</td>
+            <td>
+              <span class="badge bg-{{ $h->payment_type === 'cash' ? 'success' : ($h->payment_type === 'credit' ? 'primary' : 'secondary') }}">
+                {{ ucfirst(str_replace('_', ' ', $h->payment_type)) }}
+              </span>
+            </td>
+            <td><span class="badge bg-light text-dark">{{ ucfirst(str_replace('_', ' ', $h->service_status)) }}</span></td>
+            <td><span class="badge bg-success">Paid</span></td>
+            <td class="text-end">
+              <a href="{{ route('cashier.invoice.view', $h->id) }}"
+                 class="btn btn-sm btn-outline-info"
+                 data-bs-toggle="tooltip" title="View Invoice">
+                <i class="bi bi-eye"></i>
+              </a>
+            </td>
+          </tr>
+        @endforeach
+      </tbody>
+    </table>
+  </div>
 @endif
 
 {{-- JS Assets --}}
@@ -477,21 +480,33 @@ function addItemRow(data = null) {
 
   // Setup Select2
   const select2Data = [
-    { id: '', text: '-- search part --', price: 0 },
-    ...parts.map(p => ({
-      id: p.id,
-      text: `[${p.part_number}] ${p.item_name} – Stock: ${p.quantity}`,
-      price: Number(p.selling)
-    }))
-  ];
+  { id: '', text: '-- search part --', price: 0 },
+  ...parts.map(p => ({
+    id: p.id,
+    text: `[${p.part_number}] ${p.item_name} – Stock: ${p.quantity}`,
+    price: Number(p.selling),
+    disabled: p.quantity <= 0,   // 🚫 disables selection
+    customClass: p.quantity <= 0 ? 'zero-stock' : ''
+  }))
+];
+
 
   const $sel = row.find('.part-select').select2({
-    data: select2Data,
-    placeholder: '-- search part --',
-    allowClear: true,
-    width: 'resolve',
-    dropdownParent: $('#invoiceModal .modal-content')
-  });
+  data: select2Data,
+  placeholder: '-- search part --',
+  allowClear: true,
+  width: 'resolve',
+  dropdownParent: $('#invoiceModal .modal-content'),
+  templateResult: function (data) {
+    if (!data.id) return data.text; // optgroup or placeholder
+    const isZeroStock = parts.find(p => p.id == data.id)?.quantity <= 0;
+    return $('<span>', {
+      text: data.text,
+      css: { color: isZeroStock ? 'red' : 'inherit' }
+    });
+  }
+});
+
 
   // pre-select on edit
   if (partId) {
