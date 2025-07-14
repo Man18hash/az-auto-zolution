@@ -5,6 +5,17 @@
 
 @section('content')
   <meta name="csrf-token" content="{{ csrf_token() }}">
+  <style>
+    .table td,
+    .table th {
+    vertical-align: middle;
+    }
+
+    .table th,
+    .table td {
+    text-align: center;
+    }
+  </style>
 
   <div class="container mt-4">
     <h2 class="mb-4">Inventory Management</h2>
@@ -57,61 +68,74 @@
     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
       <span>Inventory List</span>
       <div class="d-flex">
-      <input id="searchInput" type="text" class="form-control form-control-sm me-2" placeholder="Search inventory...">
-      <button id="searchBtn" class="btn btn-light btn-sm">Search</button>
+      <input id="searchInput" type="text" class="form-control form-control-sm" placeholder="Search inventory...">
       </div>
+
     </div>
     <div class="card-body p-0">
-      <table id="inventoryTable" class="table mb-0">
-      <thead class="table-light">
-        <tr>
-        <th>#</th>
-        <th>Item Name</th>
-        <th>Part #</th>
-        <th>Qty</th>
-        <th>Selling (₱)</th>
-        <th>Acquisition (₱)</th>
-        <th>Supplier</th>
-        <th class="text-center">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        @foreach($inventories as $inv)
-        <tr data-id="{{ $inv->id }}">
+      <div class="table-responsive">
+      <small>
+        <table id="inventoryTable" class="table table-hover table-bordered align-middle table-sm mb-0">
+
+        <thead class="table-primary">
+          <tr>
+          <th>#</th>
+          <th>Item Name</th>
+          <th>Part #</th>
+          <th>Qty</th>
+          <th>Selling (₱)</th>
+          <th>Acquisition (₱)</th>
+          <th>Supplier</th>
+          <th class="text-center">Actions</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @foreach($inventories as $inv)
+        <tr data-id="{{ $inv->id }}"
+        class="{{ $inv->quantity == 0 ? 'table-danger' : ($inv->quantity < 3 ? 'table-warning' : 'table-light') }}">
+
+
         <td>{{ $loop->iteration }}</td>
         <td>{{ $inv->item_name }}</td>
         <td>{{ $inv->part_number }}</td>
-        <td>{{ $inv->quantity }}</td>
-        <td>{{ number_format($inv->selling, 2) }}</td>
-        <td>
-        {{ $inv->acquisition_price
-      ? number_format($inv->acquisition_price, 2)
-      : '-' }}
+        <td class="text-end">{{ $inv->quantity }}</td>
+        <td class="text-end">{{ number_format($inv->selling, 2) }}</td>
+        <td class="text-end">
+        {{ $inv->acquisition_price ? number_format($inv->acquisition_price, 2) : '-' }}
         </td>
         <td>{{ $inv->supplier ?? '-' }}</td>
         <td class="text-center">
         <button type="button" class="btn btn-sm btn-outline-info edit-btn" data-id="{{ $inv->id }}"
         data-item_name="{{ $inv->item_name }}" data-part_number="{{ $inv->part_number }}"
         data-quantity="{{ $inv->quantity }}" data-selling="{{ $inv->selling }}"
-        data-acquisition_price="{{ $inv->acquisition_price }}" data-supplier="{{ $inv->supplier }}">
-        Edit
+        data-acquisition_price="{{ $inv->acquisition_price }}" data-supplier="{{ $inv->supplier }}"
+        title="Edit">
+        <i class="bi bi-pencil-square"></i>
         </button>
         <form class="d-inline" action="{{ route('cashier.inventory.destroy', $inv) }}" method="POST"
         onsubmit="return confirm('Delete this item?')">
         @csrf @method('DELETE')
+        <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+          <i class="bi bi-trash"></i>
+        </button>
         </form>
         </td>
+
         </tr>
       @endforeach
-        @if($inventories->isEmpty())
-      <tr>
-      <td colspan="8" class="text-center text-muted py-3">
+
+          @if($inventories->isEmpty())
+        <tr>
+        <td colspan="8" class="text-center text-muted py-3">
         No inventory items yet.
-      </td>
-      </tr>
+        </td>
+        </tr>
       @endif
-      </tbody>
-      </table>
+        </tbody>
+        </table>
+      </small>
+      </div>
     </div>
     </div>
   </div>
@@ -240,12 +264,13 @@
 
 
     // In-page search
-    document.getElementById('searchBtn').addEventListener('click', () => {
+    document.getElementById('searchInput').addEventListener('keyup', () => {
     const q = document.getElementById('searchInput').value.toLowerCase().trim();
     document.querySelectorAll('#inventoryTable tbody tr').forEach(row => {
       row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
     });
     });
+
 
     document.getElementById('saveEditBtn').addEventListener('click', async () => {
     const id = document.getElementById('edit_inventory_id').value;

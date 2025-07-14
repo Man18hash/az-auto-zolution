@@ -29,14 +29,14 @@ use App\Http\Controllers\Admin\InvoiceHistoryController;
 
 
 Route::get('/logout', function () {
-    Auth::logout();
-    return redirect('/login');
+     Auth::logout();
+     return redirect('/login');
 });
 
 
 // Redirect root URL to login
 Route::get('/', function () {
-    return redirect()->route('login');
+     return redirect()->route('login');
 });
 
 /*
@@ -52,8 +52,8 @@ Route::aliasMiddleware('role', RoleMiddleware::class);
 |--------------------------------------------------------------------------
 */
 Route::middleware('guest')->group(function () {
-    Route::get('login',  [LoginController::class, 'showLoginForm'])->name('login');
-    Route::post('login', [LoginController::class, 'login']);
+     Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
+     Route::post('login', [LoginController::class, 'login']);
 });
 
 
@@ -68,167 +68,168 @@ Route::post('logout', [LoginController::class, 'logout'])
 | Admin Dashboard (only admin users)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth','role:admin'])
+Route::middleware(['auth', 'role:admin'])
      ->prefix('admin')
      ->name('admin.')
      ->group(function () {
 
-         // Admin Dashboard
-         Route::view('home', 'admin.home')->name('home');
-          Route::get('invoices', [\App\Http\Controllers\Admin\InvoiceHistoryController::class,'index'])
+          // Admin Dashboard
+          Route::view('home', 'admin.home')->name('home');
+          Route::get('invoices', [\App\Http\Controllers\Admin\InvoiceHistoryController::class, 'index'])
                ->name('invoices');
 
-               // Inventory page
-          Route::get('inventory', [\App\Http\Controllers\Admin\InventoryController::class,'index'])
+          // Inventory page
+          Route::get('inventory', [\App\Http\Controllers\Admin\InventoryController::class, 'index'])
                ->name('inventory');
 
           // if you want store/update/delete via admin too, add:
-          Route::post('inventory',        [\App\Http\Controllers\Admin\InventoryController::class,'store'])->name('inventory.store');
-          Route::put('inventory/{inventory}',    [\App\Http\Controllers\Admin\InventoryController::class,'update'])->name('inventory.update');
-          Route::delete('inventory/{inventory}', [\App\Http\Controllers\Admin\InventoryController::class,'destroy'])->name('inventory.destroy');
+          Route::post('inventory', [\App\Http\Controllers\Admin\InventoryController::class, 'store'])->name('inventory.store');
+          Route::put('inventory/{inventory}', [\App\Http\Controllers\Admin\InventoryController::class, 'update'])->name('inventory.update');
+          Route::delete('inventory/{inventory}', [\App\Http\Controllers\Admin\InventoryController::class, 'destroy'])->name('inventory.destroy');
 
 
 
-      // Invoice History
-          Route::get('invoices', [\App\Http\Controllers\Admin\InvoiceHistoryController::class,'index'])
+          // Invoice History
+          Route::get('invoices', [\App\Http\Controllers\Admin\InvoiceHistoryController::class, 'index'])
                ->name('invoices');
-          Route::get('invoices/{id}', [\App\Http\Controllers\Admin\InvoiceHistoryController::class,'show'])
+          Route::get('invoices/{id}', [\App\Http\Controllers\Admin\InvoiceHistoryController::class, 'show'])
                ->name('invoices.view');
-          Route::delete('invoices/{id}', [\App\Http\Controllers\Admin\InvoiceHistoryController::class,'destroy'])
+          Route::delete('invoices/{id}', [\App\Http\Controllers\Admin\InvoiceHistoryController::class, 'destroy'])
                ->name('invoices.destroy');
 
-         // Sales Report
-         Route::get('sales-report', [SalesReportController::class, 'index'])->name('sales-report');
-         Route::get('sales-report/export', [SalesReportController::class, 'export'])->name('sales-report.export');
+          // Sales Report
+          Route::get('sales-report', [SalesReportController::class, 'index'])->name('sales-report');
+          Route::get('sales-report/export', [SalesReportController::class, 'export'])->name('sales-report.export');
 
-         // Gross Sales Report (FIXED)
-         Route::get('gross-sales-report', [GrossSalesReportController::class, 'index'])->name('gross-sales-report');
-         Route::get('gross-sales-report/export', [GrossSalesReportController::class, 'export'])->name('gross-sales-report.export');
+          // Gross Sales Report (FIXED)
+          Route::get('gross-sales-report', [GrossSalesReportController::class, 'index'])->name('gross-sales-report');
+          Route::get('gross-sales-report/export', [GrossSalesReportController::class, 'export'])->name('gross-sales-report.export');
 
-         // Other Reports
-         Route::view('income-analysis-report', 'admin.income-analysis-report')->name('income-analysis-report');
-         Route::get('discount-report', [App\Http\Controllers\Admin\DiscountReportController::class, 'index'])->name('discount-report');
+          // Other Reports
+          Route::view('income-analysis-report', 'admin.income-analysis-report')->name('income-analysis-report');
+          Route::get('discount-report', [App\Http\Controllers\Admin\DiscountReportController::class, 'index'])->name('discount-report');
 
-         Route::get('income-analysis-report', [IncomeAnalysisReportController::class, 'index'])->name('income-analysis-report');
-        
+          Route::get('income-analysis-report', [IncomeAnalysisReportController::class, 'index'])->name('income-analysis-report');
 
-        Route::get('email-employee', [EmailEmployeeController::class, 'index'])->name('email-employee');
-        Route::post('user/store', [EmailEmployeeController::class, 'storeUser'])->name('user.store');
-        Route::post('technician/store', [EmailEmployeeController::class, 'storeTechnician'])->name('technician.store');
-        Route::put('user/{id}', [EmailEmployeeController::class, 'updateUser'])->name('user.update');
-        Route::put('technician/{id}', [EmailEmployeeController::class, 'updateTechnician'])->name('technician.update');
-        Route::delete('user/{id}', [EmailEmployeeController::class, 'destroyUser'])->name('user.delete');
-        Route::delete('technician/{id}', [EmailEmployeeController::class, 'destroyTechnician'])->name('technician.delete');
-     
-        
+
+          Route::get('email-employee', [EmailEmployeeController::class, 'index'])->name('email-employee');
+          Route::post('user/store', [EmailEmployeeController::class, 'storeUser'])->name('user.store');
+          Route::post('technician/store', [EmailEmployeeController::class, 'storeTechnician'])->name('technician.store');
+          Route::put('user/{id}', [EmailEmployeeController::class, 'updateUser'])->name('user.update');
+          Route::put('technician/{id}', [EmailEmployeeController::class, 'updateTechnician'])->name('technician.update');
+          Route::delete('user/{id}', [EmailEmployeeController::class, 'destroyUser'])->name('user.delete');
+          Route::delete('technician/{id}', [EmailEmployeeController::class, 'destroyTechnician'])->name('technician.delete');
+
+
      });
 /*
 |--------------------------------------------------------------------------
 | Cashier Pages & CRUD (only cashier users)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth','role:cashier'])
+Route::middleware(['auth', 'role:cashier'])
      ->prefix('cashier')
      ->name('cashier.')
      ->group(function () {
 
-         // Dashboard
-         Route::get('home', [HomeController::class, 'index'])->name('home');
-         Route::get('dashboard', [HomeController::class, 'index'])->name('dashboard');
+          // Dashboard
+          Route::get('home', [HomeController::class, 'index'])->name('home');
+          Route::get('dashboard', [HomeController::class, 'index'])->name('dashboard');
 
           // Appointment CRUD
-       // Appointment CRUD
-    Route::get   ('appointment',            [AppointmentController::class,'index'])   ->name('appointment.index');
-    Route::get   ('appointment/create',     [AppointmentController::class,'create'])  ->name('appointment.create');
-    Route::post  ('appointment',            [AppointmentController::class,'store'])   ->name('appointment.store');
-    Route::get   ('appointment/{id}/edit',  [AppointmentController::class,'edit'])    ->name('appointment.edit');
-    Route::put   ('appointment/{id}',       [AppointmentController::class,'update'])  ->name('appointment.update');
-    Route::delete('appointment/{id}',       [AppointmentController::class,'destroy']) ->name('appointment.destroy');
-    Route::get   ('appointment/{id}/view',  [AppointmentController::class,'view'])    ->name('appointment.view');
+          // Appointment CRUD
+          Route::get('appointment', [AppointmentController::class, 'index'])->name('appointment.index');
+          Route::get('appointment/create', [AppointmentController::class, 'create'])->name('appointment.create');
+          Route::post('appointment', [AppointmentController::class, 'store'])->name('appointment.store');
+          Route::get('appointment/{id}/edit', [AppointmentController::class, 'edit'])->name('appointment.edit');
+          Route::put('appointment/{id}', [AppointmentController::class, 'update'])->name('appointment.update');
+          Route::delete('appointment/{id}', [AppointmentController::class, 'destroy'])->name('appointment.destroy');
+          Route::get('appointment/{id}/view', [AppointmentController::class, 'view'])->name('appointment.view');
 
-         // Quotation CRUD
-         Route::resource('quotation', QuotationController::class)
-              ->except(['destroy']);
-         Route::get('quotation/{id}/view', [QuotationController::class, 'view'])->name('quotation.view');
+          // Quotation CRUD
+          Route::resource('quotation', QuotationController::class)
+               ->except(['destroy']);
+          Route::get('quotation/{id}/view', [QuotationController::class, 'view'])->name('quotation.view');
 
-         // History
-         Route::get('history', [HistoryController::class, 'index'])->name('history');
-         Route::get('history/{id}/view', [HistoryController::class, 'view'])->name('history.view');
+          // History
+          Route::get('history', [HistoryController::class, 'index'])->name('history');
+          Route::get('history/{id}/view', [HistoryController::class, 'view'])->name('history.view');
 
-         // Service Order CRUD
-         Route::resource('serviceorder', ServiceOrderController::class)
-              ->except(['destroy', 'show'])
-              ->names([
-                  'index'   => 'serviceorder.index',
-                  'create'  => 'serviceorder.create',
-                  'store'   => 'serviceorder.store',
-                  'edit'    => 'serviceorder.edit',
-                  'update'  => 'serviceorder.update',
-              ]);
-         Route::get('serviceorder/{id}/view', [ServiceOrderController::class, 'view'])->name('serviceorder.view');
-         Route::get('service-order', [ServiceOrderController::class, 'index'])->name('service-order');
+          // Service Order CRUD
+          Route::resource('serviceorder', ServiceOrderController::class)
+               ->except(['destroy', 'show'])
+               ->names([
+                    'index' => 'serviceorder.index',
+                    'create' => 'serviceorder.create',
+                    'store' => 'serviceorder.store',
+                    'edit' => 'serviceorder.edit',
+                    'update' => 'serviceorder.update',
+               ]);
+          Route::get('serviceorder/{id}/view', [ServiceOrderController::class, 'view'])->name('serviceorder.view');
+          Route::get('service-order', [ServiceOrderController::class, 'index'])->name('service-order');
 
-         // Invoice CRUD
-         Route::resource('invoice', InvoiceController::class)
-              ->except(['destroy', 'show'])
-              ->names([
-                  'index'   => 'invoice.index',
-                  'create'  => 'invoice.create',
-                  'store'   => 'invoice.store',
-                  'edit'    => 'invoice.edit',
-                  'update'  => 'invoice.update',
-              ]);
-         Route::get('invoice/{id}/view', [InvoiceController::class, 'view'])->name('invoice.view');
-         Route::view('invoice-blank', 'cashier.invoice-blank')->name('invoice-blank');
+          // Invoice CRUD
+          Route::resource('invoice', InvoiceController::class)
+               ->except(['destroy', 'show'])
+               ->names([
+                    'index' => 'invoice.index',
+                    'create' => 'invoice.create',
+                    'store' => 'invoice.store',
+                    'edit' => 'invoice.edit',
+                    'update' => 'invoice.update',
+               ]);
+          Route::get('invoice/{id}/view', [InvoiceController::class, 'view'])->name('invoice.view');
+          Route::view('invoice-blank', 'cashier.invoice-blank')->name('invoice-blank');
 
-         // Inventory CRUD
-         Route::resource('inventory', InventoryController::class)
-              ->only(['index','store','update','destroy'])
-              ->names([
-                  'index'   => 'inventory.index',
-                  'store'   => 'inventory.store',
-                  'update'  => 'inventory.update',
-                  'destroy' => 'inventory.destroy',
-              ]);
+          // Inventory CRUD
+          Route::resource('inventory', InventoryController::class)
+               ->only(['index', 'store', 'update', 'destroy'])
+               ->names([
+                    'index' => 'inventory.index',
+                    'store' => 'inventory.store',
+                    'update' => 'inventory.update',
+                    'destroy' => 'inventory.destroy',
+               ]);
 
-         // Clients CRUD (AJAX)
-         Route::resource('clients', ClientController::class)
-              ->only(['index','store','update','destroy'])
-              ->names([
-                  'index'   => 'clients.index',
-                  'store'   => 'clients.store',
-                  'update'  => 'clients.update',
-                  'destroy' => 'clients.destroy',
-              ]);
+          // Clients CRUD (AJAX)
+          Route::resource('clients', ClientController::class)
+               ->only(['index', 'store', 'update', 'destroy'])
+               ->names([
+                    'index' => 'clients.index',
+                    'store' => 'clients.store',
+                    'update' => 'clients.update',
+                    'destroy' => 'clients.destroy',
+               ]);
+          Route::get('clients/{id}/vehicles', [ClientController::class, 'vehicles']);
 
-         // Vehicles CRUD (AJAX)
-         Route::resource('vehicles', VehicleController::class)
-              ->only(['index','store','update','destroy'])
-              ->names([
-                  'index'   => 'vehicles.index',
-                  'store'   => 'vehicles.store',
-                  'update'  => 'vehicles.update',
-                  'destroy' => 'vehicles.destroy',
-              ]);
+          // Vehicles CRUD (AJAX)
+          Route::resource('vehicles', VehicleController::class)
+               ->only(['index', 'store', 'update', 'destroy'])
+               ->names([
+                    'index' => 'vehicles.index',
+                    'store' => 'vehicles.store',
+                    'update' => 'vehicles.update',
+                    'destroy' => 'vehicles.destroy',
+               ]);
 
-         // Expenses
-         Route::resource('expenses', ExpensesController::class)
-              ->names([
-                  'index'   => 'expenses.index',
-                  'create'  => 'expenses.create',
-                  'store'   => 'expenses.store',
-                  'edit'    => 'expenses.edit',
-                  'update'  => 'expenses.update',
-                  'destroy' => 'expenses.destroy',
-              ]);
+          // Expenses
+          Route::resource('expenses', ExpensesController::class)
+               ->names([
+                    'index' => 'expenses.index',
+                    'create' => 'expenses.create',
+                    'store' => 'expenses.store',
+                    'edit' => 'expenses.edit',
+                    'update' => 'expenses.update',
+                    'destroy' => 'expenses.destroy',
+               ]);
 
-         // AR & Cash Deposit
-         Route::get('ar-cashdeposit', [ARCashDepositController::class, 'index'])->name('ar-cashdeposit.index');
-         Route::post('ar-cashdeposit/store-ar', [ARCashDepositController::class, 'storeAR'])->name('ar-cashdeposit.storeAR');
-         Route::put('ar-cashdeposit/update-ar/{id}', [ARCashDepositController::class, 'updateAR'])->name('ar-cashdeposit.updateAR');
-         Route::delete('ar-cashdeposit/destroy-ar/{id}', [ARCashDepositController::class, 'destroyAR'])->name('ar-cashdeposit.destroyAR');
-         Route::post('ar-cashdeposit/store-cashdeposit', [ARCashDepositController::class, 'storeCashDeposit'])->name('ar-cashdeposit.storeCashDeposit');
-         Route::put('ar-cashdeposit/update-cashdeposit/{id}', [ARCashDepositController::class, 'updateCashDeposit'])->name('ar-cashdeposit.updateCashDeposit');
-         Route::delete('ar-cashdeposit/destroy-cashdeposit/{id}', [ARCashDepositController::class, 'destroyCashDeposit'])->name('ar-cashdeposit.destroyCashDeposit');
+          // AR & Cash Deposit
+          Route::get('ar-cashdeposit', [ARCashDepositController::class, 'index'])->name('ar-cashdeposit.index');
+          Route::post('ar-cashdeposit/store-ar', [ARCashDepositController::class, 'storeAR'])->name('ar-cashdeposit.storeAR');
+          Route::put('ar-cashdeposit/update-ar/{id}', [ARCashDepositController::class, 'updateAR'])->name('ar-cashdeposit.updateAR');
+          Route::delete('ar-cashdeposit/destroy-ar/{id}', [ARCashDepositController::class, 'destroyAR'])->name('ar-cashdeposit.destroyAR');
+          Route::post('ar-cashdeposit/store-cashdeposit', [ARCashDepositController::class, 'storeCashDeposit'])->name('ar-cashdeposit.storeCashDeposit');
+          Route::put('ar-cashdeposit/update-cashdeposit/{id}', [ARCashDepositController::class, 'updateCashDeposit'])->name('ar-cashdeposit.updateCashDeposit');
+          Route::delete('ar-cashdeposit/destroy-cashdeposit/{id}', [ARCashDepositController::class, 'destroyCashDeposit'])->name('ar-cashdeposit.destroyCashDeposit');
 
      });
