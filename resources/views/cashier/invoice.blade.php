@@ -186,6 +186,7 @@
         <tr>
           <th style="min-width:250px;">Item</th>
           <th>Qty</th>
+          <th>Cost ₱</th> 
           <th>Price ₱</th>
           <th>Line Total ₱</th>
           <th></th>
@@ -473,60 +474,61 @@ function addItemRow(data = null) {
       </div>
     </td>
     <td><input name="items[${idx}][quantity]" type="number" class="form-control form-control-sm" value="${qty}"></td>
+    <td><input name="items[${idx}][acquisition_price]" type="number" step="0.01" class="form-control form-control-sm acquisition-price" readonly></td>
     <td><input name="items[${idx}][price]" type="number" step="0.01" class="form-control form-control-sm" value="${price}"></td>
     <td class="col-line-total">${lineTotal}</td>
     <td><button type="button" class="btn btn-sm btn-danger remove-btn">✕</button></td>
   </tr>`);
 
   // Setup Select2
-  const select2Data = [
-  { id: '', text: '-- search part --', price: 0 },
-  ...parts.map(p => ({
-    id: p.id,
-    text: `[${p.part_number}] ${p.item_name} – Stock: ${p.quantity}`,
-    price: Number(p.selling),
-    disabled: p.quantity <= 0,   // 🚫 disables selection
-    customClass: p.quantity <= 0 ? 'zero-stock' : ''
-  }))
-];
-
+const select2Data = [
+    { id: '', text: '-- search part --', price: 0, acquisition_price: 0 },
+    ...parts.map(p => ({
+      id: p.id,
+      text: `[${p.part_number}] ${p.item_name} – Stock: ${p.quantity}`,
+      price: Number(p.selling),
+      acquisition_price: Number(p.acquisition_price),
+      disabled: p.quantity <= 0
+    }))
+  ];
 
   const $sel = row.find('.part-select').select2({
-  data: select2Data,
-  placeholder: '-- search part --',
-  allowClear: true,
-  width: 'resolve',
-  dropdownParent: $('#invoiceModal .modal-content'),
-  templateResult: function (data) {
-    if (!data.id) return data.text; // optgroup or placeholder
-    const isZeroStock = parts.find(p => p.id == data.id)?.quantity <= 0;
-    return $('<span>', {
-      text: data.text,
-      css: { color: isZeroStock ? 'red' : 'inherit' }
-    });
-  }
-});
+    data: select2Data,
+    placeholder: '-- search part --',
+    allowClear: true,
+    width: 'resolve',
+    dropdownParent: $('#invoiceModal .modal-content'),
+    templateResult: function (data) {
+      if (!data.id) return data.text;
+      const p = parts.find(p => p.id == data.id);
+      return $('<span>', {
+        text: data.text,
+        css: { color: p && p.quantity <= 0 ? 'red' : 'inherit' }
+      });
+    }
+  });
 
 
   // pre-select on edit
   if (partId) {
     $sel.val(partId).trigger('change');
     const pre = select2Data.find(o => o.id == partId);
-    if (pre?.price) {
+    if (pre) {
       row.find('[name$="[price]"]').val(pre.price.toFixed(2));
+      row.find('[name$="[acquisition_price]"]').val(pre.acquisition_price.toFixed(2));
     }
   }
 
   // inventory selection → pricing
-  $sel.on('select2:select', e => {
+$sel.on('select2:select', e => {
     const price = e.params.data.price || 0;
+    const acquisitionPrice = e.params.data.acquisition_price || 0;
     row.find('[name$="[price]"]').val(price.toFixed(2));
+    row.find('[name$="[acquisition_price]"]').val(acquisitionPrice.toFixed(2));
     row.find('[name$="[quantity]"]').val(1);
     recalc();
-  }).on('select2:clear', () => {
-    row.find('[name$="[price]"]').val('');
-    recalc();
-  });
+})
+
 
   // qty/price inputs → recalc
   row.find('[name$="[quantity]"], [name$="[price]"]').on('input', recalc);
@@ -648,11 +650,13 @@ function populateForm(invoice) {
 
   if (invoice && invoice.items && invoice.items.length) {
     invoice.items.forEach(item => {
-      addItemRow({
+addItemRow({
   part_id: item.part_id,
   quantity: item.quantity,
-  price: item.discounted_price ?? item.original_price ?? 0
+  price: item.discounted_price ?? item.original_price ?? 0,
+  acquisition_price: item.manual_acquisition_price ?? (item.part?.acquisition_price ?? 0)
 });
+
     });
   } else {
     addItemRow();
@@ -675,12 +679,12 @@ function populateForm(invoice) {
 
 $(function() {
   // Populate items/jobs when the modal opens for Create
-  @if(!isset($invoice))
-    $('#invoiceModal').on('show.bs.modal', function () {
-      populateForm(null);
-      $('#invoiceForm')[0].reset();
-    });
-  @endif
+@if(!isset($invoice))
+$('#invoiceModal').on('show.bs.modal', function () {
+  // do nothing — let it keep previous inputs
+});
+@endif
+
 
   // Handle edit buttons
   $('.btn-edit-invoice').on('click', function(e){

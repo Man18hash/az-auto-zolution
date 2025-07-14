@@ -230,12 +230,13 @@
       <table class="table mb-0" id="items-table">
         <thead>
           <tr>
-            <th style="min-width:250px;">Item</th>
-            <th>Qty</th>
-            <th>Price ₱</th>
-            <th>Total ₱</th>
-            <th></th>
-          </tr>
+  <th style="min-width:250px;">Item</th>
+  <th>Qty</th>
+  <th>Acq. ₱</th> <!-- NEW -->
+  <th>Price ₱</th>
+  <th>Total ₱</th>
+  <th></th>
+</tr>
         </thead>
         <tbody></tbody>
         <tfoot>
@@ -509,6 +510,7 @@ $('#vehicle_id').on('change', function() {
     </div>
   </td>
   <td><input name="items[${idx}][quantity]" type="number" class="form-control form-control-sm" value="${qty}"></td>
+    <td><input name="items[${idx}][acquisition_price]" type="number" step="0.01" class="form-control form-control-sm" value="${data?.acquisition_price || ''}"></td>
   <td><input name="items[${idx}][original_price]" type="number" step="0.01" class="form-control form-control-sm" value="${orig}"></td>
   <td class="col-line-total">${lineTotal}</td>
   <td><button type="button" class="btn btn-sm btn-danger remove-btn">✕</button></td>
@@ -516,8 +518,8 @@ $('#vehicle_id').on('change', function() {
 
   // select2
   const select2Data = [
-    { id:'', text:'-- search part --', price:0 },
-    ...parts.map(p=>({ id:p.id, text:`${p.item_name} - Stock: ${p.quantity}`, price:Number(p.selling) }))
+    { id:'', text:'-- search part --', price:0, acquisition:0 },
+    ...parts.map(p=>({ id:p.id, text:`${p.item_name} - Stock: ${p.quantity}`, price:Number(p.selling), acquisition: Number(p.acquisition_price) }))
   ];
   const $partSelect = row.find('.part-select');
   $partSelect.select2({
@@ -570,7 +572,9 @@ if (data?.manual_part_name) {
   // inventory selection → pricing
   $partSelect.on('select2:select', e=>{
     const price = e.params.data.price||0;
+    const acq   = e.params.data.acquisition || 0;
     row.find('[name$="[original_price]"]').val(price.toFixed(2));
+    row.find('[name$="[acquisition_price]"]').val(acq.toFixed(2));
     row.find('[name$="[quantity]"]').val(1);
     recalc();
   });
@@ -700,13 +704,17 @@ $('#quoteForm').on('submit', function(e) {
     @if(!empty($invoice) && $invoice->items && $invoice->items->count())
 
       @foreach($invoice->items as $item)
-        addItemRow({
-          part_id: '{{ $item->part_id }}',
-          quantity: '{{ $item->quantity }}',
-          original_price: '{{ $item->original_price }}',
-          
-        });
-      @endforeach
+  addItemRow({
+    part_id: '{{ $item->part_id }}',
+    quantity: '{{ $item->quantity }}',
+    original_price: '{{ $item->original_price }}',
+    acquisition_price: '{{ $item->acquisition_price }}', <!-- important -->
+    manual_part_name: '{{ $item->manual_part_name }}',
+    manual_serial_number: '{{ $item->manual_serial_number }}',
+    manual_acquisition_price: '{{ $item->manual_acquisition_price }}',
+    manual_selling_price: '{{ $item->manual_selling_price }}',
+  });
+@endforeach
     @else
       addItemRow();
     @endif
