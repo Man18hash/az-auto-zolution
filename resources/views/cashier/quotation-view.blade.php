@@ -4,6 +4,9 @@
 
 @section('content')
   @php
+    $items = $invoice->items;
+    $jobs = $invoice->jobs;
+
     $materials = $items->sum('line_total');
     $labor_total = $jobs->sum('total');
     $gross_total = $materials + $labor_total;
@@ -14,7 +17,8 @@
     $vat_amount = $discounted_total - $net_of_vat;
 
     $net_sales = $discounted_total;
-    @endphp
+  @endphp
+
 
 
 
@@ -372,18 +376,19 @@
       <tr>
         <td>{{ $item->quantity }}</td>
         <td>
-        {{ 
-      // If manual, show that; else inventory part name; else blank 
-      $item->manual_part_name
-      ?? $item->part?->item_name
-      ?? ''
-      }}
+        @if($item->manual_part_name)
+      {{ $item->manual_part_name }}
+      @elseif($item->part && $item->part->item_name)
+      {{ $item->part->item_name }}
+      @else
+      -
+      @endif
         </td>
         <td>₱{{ number_format($item->original_price ?? 0, 2) }}</td>
-
         <td>₱{{ number_format($item->line_total, 2) }}</td>
       </tr>
     @endforeach
+
       </tbody>
     </table>
 
