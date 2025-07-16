@@ -50,15 +50,20 @@ class ServiceOrderController extends Controller
             'year' => 'nullable|string',
             'color' => 'nullable|string',
             'odometer' => 'nullable|string',
-            'subtotal' => 'required|numeric',
-            'total_discount' => 'required|numeric',
-            'vat_amount' => 'required|numeric',
-            'grand_total' => 'required|numeric',
             'payment_type' => 'required|string'
         ]);
 
+
+        if ($request->customer_name || $request->vehicle_name) {
+            $clientId = null;
+            $vehicleId = null;
+        } else {
+            $clientId = $request->client_id;
+            $vehicleId = $request->vehicle_id;
+        }
+
         // Vehicle logic
-        $vehicleId = $request->vehicle_id;
+
         if ($vehicleId) {
             $vehicle = Vehicle::find($vehicleId);
             if ($vehicle) {
@@ -77,7 +82,8 @@ class ServiceOrderController extends Controller
                 'year' => $request->year,
                 'color' => $request->color,
                 'odometer' => $request->odometer,
-                'client_id' => $request->client_id,
+                'client_id' => $clientId,
+
             ]);
             $vehicleId = $vehicle->id;
         } else {
@@ -85,21 +91,25 @@ class ServiceOrderController extends Controller
         }
 
         $invoice = Invoice::create([
-            'client_id' => $request->client_id,
+            'client_id' => $clientId,
             'vehicle_id' => $vehicleId,
             'customer_name' => $request->customer_name,
             'vehicle_name' => $request->vehicle_name,
             'source_type' => 'service_order',
             'service_status' => 'pending',
             'status' => 'unpaid',
-            'subtotal' => $request->subtotal,
-            'total_discount' => $request->total_discount,
-            'vat_amount' => $request->vat_amount,
-            'grand_total' => $request->grand_total,
+            'subtotal' => 0,
+            'total_discount' => 0,
+            'vat_amount' => 0,
+            'grand_total' => 0,
             'payment_type' => $request->payment_type,
             'number' => $request->number,
             'address' => $request->address,
         ]);
+
+
+        
+
 
         // Save items (inventory OR manual)
         if ($request->has('items')) {
@@ -180,7 +190,15 @@ class ServiceOrderController extends Controller
 
         ]);
 
-        $vehicleId = $request->vehicle_id;
+        if ($request->customer_name || $request->vehicle_name) {
+            $clientId = null;
+            $vehicleId = null;
+        } else {
+            $clientId = $request->client_id;
+            $vehicleId = $request->vehicle_id;
+        }
+
+
         if ($vehicleId) {
             $vehicle = Vehicle::find($vehicleId);
             if ($vehicle) {
@@ -199,7 +217,8 @@ class ServiceOrderController extends Controller
                 'year' => $request->year,
                 'color' => $request->color,
                 'odometer' => $request->odometer,
-                'client_id' => $request->client_id,
+                'client_id' => $clientId,
+
             ]);
             $vehicleId = $vehicle->id;
         } else {
@@ -207,7 +226,7 @@ class ServiceOrderController extends Controller
         }
 
         $invoice->update([
-            'client_id' => $request->client_id,
+            'client_id' => $clientId,
             'vehicle_id' => $vehicleId,
             'customer_name' => $request->customer_name,
             'vehicle_name' => $request->vehicle_name,
@@ -219,7 +238,10 @@ class ServiceOrderController extends Controller
             'vat_amount' => $request->vat_amount,
             'grand_total' => $request->grand_total,
             'payment_type' => $request->payment_type,
+            'number' => $request->number,
+            'address' => $request->address,
         ]);
+
 
 
         // Update items (delete old, add new: inventory OR manual)

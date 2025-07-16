@@ -481,7 +481,13 @@
 
       const select2Data = [
       { id: '', text: '-- search part --', price: 0, acquisition: 0 },
-      ...parts.map(p => ({ id: p.id, text: `${p.item_name} - Stock: ${p.quantity}`, price: +p.selling, acquisition: +p.acquisition_price }))
+      ...parts.map(p => ({
+        id: p.id,
+        text: `${p.item_name} - Stock: ${p.quantity}`,
+        price: +p.selling,
+        acquisition: +p.acquisition_price,
+        disabled: p.quantity == 0
+      }))
       ];
 
       const $partSelect = row.find('.part-select').select2({
@@ -489,15 +495,24 @@
       placeholder: '-- search part --',
       allowClear: true,
       width: 'resolve',
-      dropdownParent: $('#items-table')
-      }).on('select2:select', e => {
-      row.find('[name$="[original_price]"]').val(e.params.data.price.toFixed(2));
-      row.find('[name$="[acquisition_price]"]').val(e.params.data.acquisition.toFixed(2));
-      row.find('[name$="[quantity]"]').val(1);
-      recalc();
-      }).on('select2:clear', () => {
-      row.find('[name$="[original_price]"]').val('');
-      recalc();
+      dropdownParent: $('#items-table'),
+      templateResult: function (data) {
+        if (!data.id) return data.text;
+        if (data.disabled) {
+        return $('<span style="color:red;">' + data.text + ' (Out of stock)</span>');
+        }
+        return data.text;
+      }
+      })
+      .on('select2:select', e => {
+        row.find('[name$="[original_price]"]').val(e.params.data.price.toFixed(2));
+        row.find('[name$="[acquisition_price]"]').val(e.params.data.acquisition.toFixed(2));
+        row.find('[name$="[quantity]"]').val(1);
+        recalc();
+      })
+      .on('select2:clear', () => {
+        row.find('[name$="[original_price]"]').val('');
+        recalc();
       });
 
       if (partId) {
@@ -505,6 +520,9 @@
       const sel = select2Data.find(o => o.id == partId);
       if (sel) row.find('[name$="[original_price]"]').val(sel.price.toFixed(2));
       }
+
+
+      
 
       row.find('[name$="[quantity]"], [name$="[original_price]"]').on('input', recalc);
       row.find('.remove-btn').on('click', () => { row.remove(); recalc(); });
