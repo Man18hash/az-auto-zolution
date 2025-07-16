@@ -35,7 +35,7 @@ class QuotationController extends Controller
         $parts = Inventory::all();
         $technicians = Technician::all();
         $history = collect([]);
-        $invoice = null; 
+        $invoice = null;
 
         return view('cashier.quotation', compact('invoice', 'clients', 'vehicles', 'parts', 'technicians', 'history'));
     }
@@ -116,16 +116,24 @@ class QuotationController extends Controller
         // Save items
         if ($request->has('items')) {
             foreach ($request->items as $item) {
+                $original = $item['original_price'] ?? ($item['manual_selling_price'] ?? 0);
+                $discount = $item['discounted_price'] ?? 0;
+                $effectivePrice = $original - $discount;
+                $qty = $item['quantity'] ?? 0;
+                $lineTotal = $qty * $effectivePrice;
+
                 $invoice->items()->create([
                     'part_id' => $item['part_id'] ?? null,
                     'manual_part_name' => $item['manual_part_name'] ?? null,
                     'manual_serial_number' => $item['manual_serial_number'] ?? null,
                     'manual_acquisition_price' => $item['manual_acquisition_price'] ?? null,
                     'manual_selling_price' => $item['manual_selling_price'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'original_price' => $item['original_price'] ?? ($item['manual_selling_price'] ?? 0),
-                    'line_total' => $item['quantity'] * ($item['original_price'] ?? ($item['manual_selling_price'] ?? 0)),
+                    'quantity' => $qty,
+                    'original_price' => $original,
+                    'discounted_price' => $discount,
+                    'line_total' => $lineTotal,
                 ]);
+
 
             }
         }
@@ -241,16 +249,25 @@ class QuotationController extends Controller
         $invoice->items()->delete();
         if ($request->has('items')) {
             foreach ($request->items as $item) {
+                $original = $item['original_price'] ?? ($item['manual_selling_price'] ?? 0);
+                $discount = $item['discounted_price'] ?? 0;
+                $effectivePrice = $original - $discount;
+                $qty = $item['quantity'] ?? 0;
+                $lineTotal = $qty * $effectivePrice;
+
                 $invoice->items()->create([
                     'part_id' => $item['part_id'] ?? null,
                     'manual_part_name' => $item['manual_part_name'] ?? null,
                     'manual_serial_number' => $item['manual_serial_number'] ?? null,
                     'manual_acquisition_price' => $item['manual_acquisition_price'] ?? null,
                     'manual_selling_price' => $item['manual_selling_price'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'original_price' => $item['original_price'] ?? ($item['manual_selling_price'] ?? 0),
-                    'line_total' => $item['quantity'] * ($item['original_price'] ?? ($item['manual_selling_price'] ?? 0)),
+                    'quantity' => $qty,
+                    'original_price' => $original,
+                    'discounted_price' => $discount,
+                    'line_total' => $lineTotal,
                 ]);
+
+
 
             }
         }
