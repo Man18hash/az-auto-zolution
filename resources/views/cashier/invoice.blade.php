@@ -18,6 +18,14 @@
 .select2-container { width: 100% !important; }
 .select2-dropdown { z-index: 10060; }
 .btn-source-type { min-width: 120px; margin-left: 4px;}
+
+.select2-container--default .select2-selection--single {
+  width: 300px !important; /* adjust as needed */
+}
+.select2-container {
+  width: 300px !important; /* ensures container matches */
+}
+
 </style>
 
 <div class="container mt-4 mb-3">
@@ -28,7 +36,8 @@
 
 {{-- Invoice Modal --}}
 <div class="modal fade" id="invoiceModal" tabindex="-1" aria-labelledby="invoiceModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable" style="max-width: 95vw;">
+
     <div class="modal-content">
       <div class="modal-header">
         <h2 class="modal-title mx-auto" id="invoiceModalLabel">{{ isset($invoice) ? 'Edit Invoice' : 'Create Invoice' }}</h2>
@@ -41,6 +50,17 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
           </div>
         @endif
+
+        @if($errors->any())
+  <div class="alert alert-danger">
+    <ul class="mb-0">
+      @foreach($errors->all() as $error)
+        <li>{{ $error }}</li>
+      @endforeach
+    </ul>
+  </div>
+@endif
+
 
         <form action="{{ isset($invoice) ? route('cashier.invoice.update', $invoice->id) : route('cashier.invoice.store') }}"
               method="POST" id="invoiceForm" autocomplete="off">
@@ -183,15 +203,17 @@
   <div class="card-body p-3">
     <table class="table table-bordered" id="items-table">
       <thead>
-        <tr>
-          <th style="min-width:250px;">Item</th>
-          <th>Qty</th>
-          <th>Cost ₱</th> 
-          <th>Price ₱</th>
-          <th>Line Total ₱</th>
-          <th></th>
-        </tr>
-      </thead>
+  <tr>
+    <th style="min-width:250px;">Item</th>
+    <th>Qty</th>
+    <th>Acq. ₱</th>
+    <th>Price ₱</th>
+    <th>Discounted ₱</th>
+    <th>Total ₱</th>
+    <th></th>
+  </tr>
+</thead>
+
       <tbody></tbody>
       <tfoot>
         <tr>
@@ -241,8 +263,9 @@
             </div>
             <div class="col-md-3">
               <label class="form-label fw-bold">Total Discount</label>
-              <input type="number" step="0.1" name="total_discount" class="form-control"
-       value="{{ old('total_discount', $invoice->total_discount ?? '') }}">
+              
+              <input type="number" name="total_discount" class="form-control" value="{{ old('total_discount', $invoice->total_discount ?? 0) }}">
+
 
             </div>
             <div class="col-md-3">
@@ -449,7 +472,8 @@ function addItemRow(data = null) {
   const idx = $('#items-table tbody tr').length;
   const partId = data?.part_id || '';
   const qty = data?.quantity || 1;
-  const price = data?.price || '';
+  const price = data?.original_price || '';
+
 
   const lineTotal = (qty && price) ? (qty * price).toFixed(2) : '0.00';
 
@@ -464,18 +488,23 @@ function addItemRow(data = null) {
         <button type="button" class="btn btn-warning btn-sm manual-toggle">Manual</button>
       </div>
       <div class="manual-fields mt-2 d-none">
-        <input type="text"   name="items[${idx}][manual_part_name]" class="form-control form-control-sm mb-1" placeholder="Part Name">
-        <input type="text"   name="items[${idx}][manual_serial_number]" class="form-control form-control-sm mb-1" placeholder="Serial #">
-        <input type="number" name="items[${idx}][manual_price]" class="form-control form-control-sm mb-1" placeholder="Price ₱">
-        <div class="d-flex gap-2">
-          <button type="button" class="btn btn-sm btn-secondary cancel-manual">Cancel</button>
-          <button type="button" class="btn btn-sm btn-success save-manual">Save</button>
-        </div>
-      </div>
+  <input type="text" name="items[${idx}][manual_part_name]" class="form-control form-control-sm mb-1" placeholder="Part Name">
+  <input type="text" name="items[${idx}][manual_serial_number]" class="form-control form-control-sm mb-1" placeholder="Serial #">
+  <input type="number" name="items[${idx}][manual_acquisition_price]" class="form-control form-control-sm mb-1" placeholder="Acquisition ₱">
+  <input type="number" name="items[${idx}][manual_selling_price]" class="form-control form-control-sm mb-1" placeholder="Selling ₱">
+  <div class="d-flex gap-2">
+    <button type="button" class="btn btn-sm btn-secondary cancel-manual">Cancel</button>
+    <button type="button" class="btn btn-sm btn-success save-manual">Save</button>
+  </div>
+</div>
+
     </td>
     <td><input name="items[${idx}][quantity]" type="number" class="form-control form-control-sm" value="${qty}"></td>
     <td><input name="items[${idx}][acquisition_price]" type="number" step="0.01" class="form-control form-control-sm acquisition-price" readonly></td>
     <td><input name="items[${idx}][price]" type="number" step="0.01" class="form-control form-control-sm" value="${price}"></td>
+    <input type="hidden" name="items[${idx}][original_price]" value="${price}">
+
+    <td><input name="items[${idx}][discounted_price]" type="number" step="0.01" class="form-control form-control-sm" value="${data?.discounted_price || ''}"></td>
     <td class="col-line-total">${lineTotal}</td>
     <td><button type="button" class="btn btn-sm btn-danger remove-btn">✕</button></td>
   </tr>`);
@@ -531,7 +560,8 @@ $sel.on('select2:select', e => {
 
 
   // qty/price inputs → recalc
-  row.find('[name$="[quantity]"], [name$="[price]"]').on('input', recalc);
+  row.find('[name$="[quantity]"], [name$="[price]"], [name$="[discounted_price]"]').on('input', recalc);
+
 
   // remove row
   row.find('.remove-btn').on('click', () => { row.remove(); recalc(); });
@@ -546,13 +576,46 @@ $sel.on('select2:select', e => {
     row.find('.input-group').removeClass('d-none');
   });
   row.find('.save-manual').on('click', () => {
-    const manualPrice = parseFloat(row.find('[name$="[manual_price]"]').val()) || 0;
-    row.find('[name$="[price]"]').val(manualPrice.toFixed(2));
-    row.find('[name$="[quantity]"]').val(1);
-    recalc();
-    row.find('.manual-fields').addClass('d-none');
-    row.find('.input-group').removeClass('d-none');
-  });
+  const partName = row.find('[name$="[manual_part_name]"]').val() || '';
+  const serial = row.find('[name$="[manual_serial_number]"]').val() || '';
+  const acq = parseFloat(row.find('[name$="[manual_acquisition_price]"]').val()) || 0;
+  const sell = parseFloat(row.find('[name$="[manual_selling_price]"]').val()) || 0;
+
+  row.find('[name$="[price]"]').val(sell.toFixed(2));
+  row.find('[name$="[quantity]"]').val(1);
+  row.find('[name$="[acquisition_price]"]').val(acq.toFixed(2));
+
+  // Replace the cell with static inputs to prevent re-editing
+  row.find('td').first().html(`
+    <input type="text" name="items[${idx}][manual_part_name]" class="form-control form-control-sm mb-1" value="${partName}" readonly>
+    <input type="text" name="items[${idx}][manual_serial_number]" class="form-control form-control-sm mb-1" value="${serial}" readonly>
+    <input type="number" name="items[${idx}][manual_acquisition_price]" class="form-control form-control-sm mb-1" value="${acq}" readonly>
+    <input type="number" name="items[${idx}][manual_selling_price]" class="form-control form-control-sm mb-1" value="${sell}" readonly>
+  `);
+
+  recalc();
+});
+
+if (data?.manual_part_name) {
+  row.find('.manual-fields').removeClass('d-none');
+  row.find('.input-group').addClass('d-none');
+
+  row.find('[name$="[manual_part_name]"]').val(data.manual_part_name);
+  row.find('[name$="[manual_serial_number]"]').val(data.manual_serial_number);
+  row.find('[name$="[manual_acquisition_price]"]').val(data.manual_acquisition_price);
+  row.find('[name$="[manual_selling_price]"]').val(data.manual_selling_price);
+
+  row.find('[name$="[acquisition_price]"]').val(data.manual_acquisition_price);
+  row.find('[name$="[price]"]').val(data.manual_selling_price);
+
+  // Show readonly version immediately
+  row.find('td').first().html(`
+    <input type="text" name="items[${idx}][manual_part_name]" class="form-control form-control-sm mb-1" value="${data.manual_part_name}" readonly>
+    <input type="text" name="items[${idx}][manual_serial_number]" class="form-control form-control-sm mb-1" value="${data.manual_serial_number}" readonly>
+    <input type="number" name="items[${idx}][manual_acquisition_price]" class="form-control form-control-sm mb-1" value="${data.manual_acquisition_price}" readonly>
+    <input type="number" name="items[${idx}][manual_selling_price]" class="form-control form-control-sm mb-1" value="${data.manual_selling_price}" readonly>
+  `);
+}
 
   $('#items-table tbody').append(row);
   recalc();
@@ -593,9 +656,12 @@ function recalc() {
   // Calculate items line totals
   $('#items-table tbody tr').each(function() {
     const $r = $(this);
-    const qty = +$r.find('[name$="[quantity]"]').val() || 0;
-    const price = +$r.find('[name$="[price]"]').val() || 0;
-    const lineTotal = qty * price;
+   const qty = +$r.find('[name$="[quantity]"]').val() || 0;
+const price = +$r.find('[name$="[price]"]').val() || 0;
+const discounted = +$r.find('[name$="[discounted_price]"]').val() || 0;
+const finalPrice = price - discounted;
+const lineTotal = qty * finalPrice;
+
 
     itemsTotal += lineTotal;
 
@@ -625,7 +691,7 @@ function recalc() {
 
 
   /// ERROR CHECK (new—Jobs only)
-$('#quoteForm').on('submit', function(e) {
+$('#invoiceForm').on('submit', function(e) {
   let hasBlankJob = false;
   $('#jobs-table tbody tr').each(function() {
     const desc = $(this).find('[name$="[job_description]"]').val();
@@ -653,9 +719,16 @@ function populateForm(invoice) {
 addItemRow({
   part_id: item.part_id,
   quantity: item.quantity,
-  price: item.discounted_price ?? item.original_price ?? 0,
-  acquisition_price: item.manual_acquisition_price ?? (item.part?.acquisition_price ?? 0)
+  original_price: item.original_price ?? 0,
+  discounted_price: item.discounted_price ?? 0,
+  acquisition_price: item.manual_acquisition_price ?? (item.part?.acquisition_price ?? 0),
+  manual_part_name: item.manual_part_name,
+  manual_serial_number: item.manual_serial_number,
+  manual_acquisition_price: item.manual_acquisition_price,
+  manual_selling_price: item.manual_selling_price
 });
+
+
 
     });
   } else {
@@ -708,6 +781,13 @@ $('[name="total_discount"]').on('input', recalc);
 });
 
 </script>
+@if ($errors->any())
+  <script>
+    $(function () {
+      $('#invoiceModal').modal('show');
+    });
+  </script>
+@endif
 @endsection
 
 

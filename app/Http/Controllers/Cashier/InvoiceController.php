@@ -51,7 +51,7 @@ class InvoiceController extends Controller
             'color' => 'nullable|string',
             'odometer' => 'nullable|string',
             'subtotal' => 'required|numeric',
-            'total_discount' => 'required|numeric',
+            'total_discount' => 'nullable|numeric|min:0',
             'vat_amount' => 'required|numeric',
             'grand_total' => 'required|numeric',
             'payment_type' => 'required|string',
@@ -61,6 +61,8 @@ class InvoiceController extends Controller
             'number' => 'nullable|string',
             'address' => 'nullable|string',
         ]);
+
+        
 
         // ✅ Automatically create client if none selected but manual name exists
         $clientId = $request->client_id;
@@ -110,7 +112,7 @@ class InvoiceController extends Controller
             'service_status' => $request->service_status ?? 'pending',
             'status' => $request->status ?? 'unpaid',
             'subtotal' => $request->subtotal,
-            'total_discount' => $request->total_discount,
+            'total_discount' => $request->input('total_discount', 0),
             'vat_amount' => $request->vat_amount,
             'grand_total' => $request->grand_total,
             'payment_type' => $request->payment_type,
@@ -123,18 +125,26 @@ class InvoiceController extends Controller
         $invoice->items()->delete();
         if ($request->has('items')) {
             foreach ($request->items as $item) {
+                $original = $item['original_price'] ?? $item['price'] ?? $item['manual_selling_price'] ?? 0;
+
+
+                $discount = $item['discounted_price'] ?? 0;
+                $effective = $original - $discount;
+                $qty = $item['quantity'] ?? 0;
+                $lineTotal = $qty * $effective;
+
                 $invoice->items()->create([
                     'part_id' => $item['part_id'] ?? null,
                     'manual_part_name' => $item['manual_part_name'] ?? null,
                     'manual_serial_number' => $item['manual_serial_number'] ?? null,
                     'manual_acquisition_price' => $item['manual_acquisition_price'] ?? null,
-                    'manual_selling_price' => $item['manual_price'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'original_price' => $item['price'] ?? ($item['manual_price'] ?? 0),
-                    'discounted_price' => $item['price'] ?? ($item['manual_price'] ?? 0),
-                    'discount_value' => 0,
-                    'line_total' => $item['quantity'] * ($item['price'] ?? ($item['manual_price'] ?? 0)),
+                    'manual_selling_price' => $item['manual_selling_price'] ?? null,
+                    'quantity' => $qty,
+                    'original_price' => $original,
+                    'discounted_price' => $discount,
+                    'line_total' => $lineTotal,
                 ]);
+
             }
         }
         if ($request->has('jobs')) {
@@ -212,7 +222,7 @@ class InvoiceController extends Controller
             'color' => 'nullable|string',
             'odometer' => 'nullable|string',
             'subtotal' => 'required|numeric',
-            'total_discount' => 'required|numeric',
+            'total_discount' => 'nullable|numeric|min:0',
             'vat_amount' => 'required|numeric',
             'grand_total' => 'required|numeric',
             'payment_type' => 'required|string',
@@ -268,29 +278,40 @@ class InvoiceController extends Controller
             'service_status' => $request->service_status ?? 'pending',
             'status' => $request->status ?? 'unpaid',
             'subtotal' => $request->subtotal,
-            'total_discount' => $request->total_discount,
+            'total_discount' => $request->input('total_discount', 0),
+
             'vat_amount' => $request->vat_amount,
             'grand_total' => $request->grand_total,
             'payment_type' => $request->payment_type,
             'invoice_no' => $request->invoice_no,
         ]);
 
+       
+
         // Update items (delete old, add new)
         $invoice->items()->delete();
         if ($request->has('items')) {
             foreach ($request->items as $item) {
+                $original = $item['original_price'] ?? $item['price'] ?? $item['manual_selling_price'] ?? 0;
+
+
+                $discount = $item['discounted_price'] ?? 0;
+                $effective = $original - $discount;
+                $qty = $item['quantity'] ?? 0;
+                $lineTotal = $qty * $effective;
+
                 $invoice->items()->create([
                     'part_id' => $item['part_id'] ?? null,
                     'manual_part_name' => $item['manual_part_name'] ?? null,
                     'manual_serial_number' => $item['manual_serial_number'] ?? null,
                     'manual_acquisition_price' => $item['manual_acquisition_price'] ?? null,
-                    'manual_selling_price' => $item['manual_price'] ?? null,
-                    'quantity' => $item['quantity'],
-                    'original_price' => $item['price'] ?? ($item['manual_price'] ?? 0),
-                    'discounted_price' => $item['price'] ?? ($item['manual_price'] ?? 0),
-                    'discount_value' => 0,
-                    'line_total' => $item['quantity'] * ($item['price'] ?? ($item['manual_price'] ?? 0)),
+                    'manual_selling_price' => $item['manual_selling_price'] ?? null,
+                    'quantity' => $qty,
+                    'original_price' => $original,
+                    'discounted_price' => $discount,
+                    'line_total' => $lineTotal,
                 ]);
+
 
             }
         }

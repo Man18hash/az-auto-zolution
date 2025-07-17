@@ -4,6 +4,9 @@
 
 @section('content')
   @php
+    $items = $invoice->items;
+    $jobs = $invoice->jobs;
+
     $materials = $items->sum('line_total');
     $labor_total = $jobs->sum('total');
     $gross_total = $materials + $labor_total;
@@ -14,7 +17,8 @@
     $vat_amount = $discounted_total - $net_of_vat;
 
     $net_sales = $discounted_total;
-    @endphp
+  @endphp
+
 
 
 
@@ -372,37 +376,63 @@
       <tr>
         <td>{{ $item->quantity }}</td>
         <td>
-        {{ 
-      // If manual, show that; else inventory part name; else blank 
-      $item->manual_part_name
-      ?? $item->part?->item_name
-      ?? ''
-      }}
+        @if($item->manual_part_name)
+      {{ $item->manual_part_name }}
+      @elseif($item->part && $item->part->item_name)
+      {{ $item->part->item_name }}
+      @elseif($item->manual_selling_price)
+      Manual Item
+      @else
+      -
+      @endif
         </td>
-        <td>₱{{ number_format($item->original_price ?? 0, 2) }}</td>
 
+        <td>
+        ₱{{ number_format(($item->original_price - $item->discounted_price), 2) }}
+        @if($item->discounted_price > 0)
+      <small style="display:block;color:#888;">
+        (₱{{ number_format($item->original_price, 2) }} - ₱{{ number_format($item->discounted_price, 2) }})
+      </small>
+      @endif
+        </td>
         <td>₱{{ number_format($item->line_total, 2) }}</td>
       </tr>
     @endforeach
+      {{-- Total Material --}}
+      <tr>
+        <td colspan="3" style="text-align:right;font-weight:bold;background:#FFD71A;">Total Material</td>
+        <td style="background:#FFD71A;font-weight:bold;">₱{{ number_format($materials, 2) }}</td>
+      </tr>
       </tbody>
     </table>
 
-    {{-- LABOR MATERIALS (yellow, single row) --}}
+    {{-- LABOR --}}
     <table class="labor-material-table">
+      <thead>
       <tr>
-      <th colspan="2">Labor</th>
-      <th>Total Material</th>
-      <th>₱{{ number_format($materials, 2) }}</th>
+        <th>Technician</th>
+        <th>Job Description</th>
+        <th>Total</th>
       </tr>
+      </thead>
+      <tbody>
       @foreach($jobs as $job)
       <tr>
       <td>{{ strtoupper($job->technician->name ?? '-') }}</td>
       <td>{{ $job->job_description }}</td>
-      <td></td>
-      <td>{{ $job->total ? '₱' . number_format($job->total, 2) : '' }}</td>
+      <td style="text-align:right;">{{ $job->total ? '₱' . number_format($job->total, 2) : '' }}</td>
       </tr>
     @endforeach
+      {{-- Total Labor --}}
+      <tr>
+        <td colspan="2" style="text-align:right;font-weight:bold;background:#FFD71A;">Total Labor</td>
+        <td style="background:#FFD71A;font-weight:bold;text-align:right;">
+        ₱{{ number_format($labor_total, 2) }}
+        </td>
+      </tr>
+      </tbody>
     </table>
+
 
     {{-- Job Table and totals --}}
     <table class="job-table">
