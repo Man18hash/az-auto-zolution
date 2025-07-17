@@ -72,8 +72,10 @@ class AppointmentController extends Controller
             'color' => 'nullable|string',
             'odometer' => 'nullable|string',
 
-            'appointment_date' => 'nullable|date',
+            'appointment_date' => 'required|date',
             'note' => 'nullable|string',
+        ], [
+            'appointment_date.required' => 'Please pick an appointment date.',
         ]);
 
         // Handle manual client creation
@@ -188,8 +190,10 @@ class AppointmentController extends Controller
             'color' => 'nullable|string',
             'odometer' => 'nullable|string',
 
-            'appointment_date' => 'nullable|date',
+            'appointment_date' => 'required|date',
             'note' => 'nullable|string',
+        ], [
+            'appointment_date.required' => 'Please pick an appointment date.',
         ]);
 
         // Handle manual client creation on update

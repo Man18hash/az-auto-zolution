@@ -235,6 +235,12 @@
         <input type="date" name="appointment_date" id="appointment_date" class="form-control"
           value="{{ old('appointment_date', isset($invoice->appointment_date) ? $invoice->appointment_date->format('Y-m-d') : '') }}">
         </div>
+        @if ($errors->has('appointment_date'))
+      <div class="text-danger small">
+      {{ $errors->first('appointment_date') }}
+      </div>
+      @endif
+
       </div>
       </div>
     </div>
@@ -255,7 +261,7 @@
     </form>
     @php
     $filtered = $history->whereIn('source_type', ['appointment', 'cancelled']);
-  @endphp
+    @endphp
     {{-- ---------- Recent Appointments ---------- --}}
     <div class="card mb-5 shadow-sm">
     <div class="card-header">Recent Appointments</div>

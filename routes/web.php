@@ -165,6 +165,9 @@ Route::middleware(['auth', 'role:cashier'])
                     'edit' => 'serviceorder.edit',
                     'update' => 'serviceorder.update',
                ]);
+
+          Route::delete('serviceorder/{id}', [ServiceOrderController::class, 'destroy'])
+               ->name('serviceorder.destroy');
           Route::get('serviceorder/{id}/view', [ServiceOrderController::class, 'view'])->name('serviceorder.view');
           Route::get('service-order', [ServiceOrderController::class, 'index'])->name('service-order');
 

@@ -4,26 +4,24 @@
 
 @section('content')
 <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
 <style>
-/* General layout */
 body {
     background: #f6f8fa;
     font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
 }
-
 .card {
     border: none;
     border-radius: 1rem;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 12px rgba(0,0,0,0.05);
     transition: transform 0.2s;
     background: white;
     margin-bottom: 1.5rem;
 }
 .card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
 }
-
 .card-header {
     background: #4a90e2;
     color: white;
@@ -33,110 +31,23 @@ body {
     border-top-right-radius: 1rem;
     padding: 1rem 1.25rem;
 }
-
 .form-control, .form-select {
     border-radius: 0.5rem;
     padding: 0.65rem 0.85rem;
     font-size: 0.95rem;
-    border: 1px solid #ced4da;
-    transition: border-color 0.3s, box-shadow 0.3s;
 }
-.form-control:focus, .form-select:focus {
-    border-color: #4a90e2;
-    box-shadow: 0 0 0 0.15rem rgba(74,144,226,0.25);
-}
-
-/* Buttons */
 .btn-primary {
     border-radius: 0.5rem;
     padding: 0.65rem 1.5rem;
-    font-weight: 500;
     font-size: 0.95rem;
     background: linear-gradient(135deg, #4a90e2, #357ab8);
-    border: none;
-    transition: background 0.3s;
     color: white;
+    border: none;
 }
 .btn-primary:hover {
     background: linear-gradient(135deg, #357ab8, #4a90e2);
 }
-
-.btn-add {
-    padding: 0.6rem 1.5rem;
-    font-size: 0.95rem;
-    transition: all 0.3s;
-    border-radius: 0.5rem;
-}
-.btn-add:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-}
-
-/* Table rows hover */
-.table-hover tbody tr:hover {
-    background: #f0f7ff;
-}
-
-/* Badge for status */
-.badge {
-    font-size: 0.75rem;
-    padding: 0.35em 0.6em;
-}
-
-/* ➡ Custom styling for the items table input group */
-#items-table .input-group {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-}
-
-/* Select2 container inside items table */
-#items-table .input-group .select2-container {
-    flex: 1 1 auto;
-    min-width: 0;
-}
-
-/* Select2 selection height to align nicely */
-#items-table .select2-container--default .select2-selection--single {
-    height: 38px;
-    line-height: 38px;
-    border-radius: 0.5rem;
-    padding-left: 0.5rem;
-}
-#items-table .select2-selection__arrow {
-    height: 38px;
-}
-
-/* Truncate long text inside select2 */
-#items-table .select2-selection__rendered {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-/* Manual button styling next to select2 */
-#items-table .manual-toggle {
-    padding: 0.45rem 0.9rem;
-    font-size: 0.85rem;
-    border-radius: 0.4rem;
-    white-space: nowrap;
-    background: #f6c23e;
-    color: #212529;
-    border: none;
-    cursor: pointer;
-}
-#items-table .manual-toggle:hover {
-    background: #e0b12f;
-}
-
-/* ➡ Keep select2 dropdown above all */
-.select2-dropdown { 
-    z-index: 10060; 
-}
-
 </style>
-
-
 
 <div class="container mt-4">
   <h2 class="mb-4 text-center">{{ isset($invoice) ? 'Edit Service Order' : 'Create Service Order' }}</h2>
@@ -149,9 +60,15 @@ body {
   @endif
 
   <form action="{{ isset($invoice) ? route('cashier.serviceorder.update', $invoice->id) : route('cashier.serviceorder.store') }}"
-        method="POST" id="quoteForm" autocomplete="off">
+        method="POST" autocomplete="off">
     @csrf
     @if(isset($invoice)) @method('PUT') @endif
+
+    <input type="hidden" name="subtotal" value="0">
+<input type="hidden" name="total_discount" value="0">
+<input type="hidden" name="vat_amount" value="0">
+<input type="hidden" name="grand_total" value="0">
+
 
     {{-- Customer & Vehicle --}}
     <div class="card mb-4 shadow-sm">
@@ -172,7 +89,7 @@ body {
           </div>
           <div class="col-md-3">
             <label class="form-label">Manual Customer Name</label>
-            <input type="text" name="customer_name" class="form-control" placeholder="Enter walk-in name"
+            <input type="text" name="customer_name" class="form-control"
                    value="{{ old('customer_name', $invoice->customer_name ?? '') }}">
           </div>
           <div class="col-md-3">
@@ -194,7 +111,7 @@ body {
           </div>
           <div class="col-md-3">
             <label class="form-label">Manual Vehicle Name</label>
-            <input type="text" name="vehicle_name" class="form-control" placeholder="Enter vehicle details"
+            <input type="text" name="vehicle_name" class="form-control"
                    value="{{ old('vehicle_name', $invoice->vehicle_name ?? '') }}">
           </div>
         </div>
@@ -228,14 +145,13 @@ body {
           <div class="col-md-2">
             <label class="form-label">Payment Type</label>
             <select name="payment_type" class="form-select" style="background:#e6ffe3">
-              <option value="cash"      @selected(old('payment_type', $invoice->payment_type ?? '')=='cash')>Cash</option>
-              <option value="debit"     @selected(old('payment_type', $invoice->payment_type ?? '')=='debit')>Debit</option>
-              <option value="credit"    @selected(old('payment_type', $invoice->payment_type ?? '')=='credit')>Credit</option>
-              <option value="non_cash"  @selected(old('payment_type', $invoice->payment_type ?? '')=='non_cash')>Non Cash</option>
+              <option value="cash" @selected(old('payment_type', $invoice->payment_type ?? '')=='cash')>Cash</option>
+              <option value="debit" @selected(old('payment_type', $invoice->payment_type ?? '')=='debit')>Debit</option>
+              <option value="credit" @selected(old('payment_type', $invoice->payment_type ?? '')=='credit')>Credit</option>
+              <option value="non_cash" @selected(old('payment_type', $invoice->payment_type ?? '')=='non_cash')>Non Cash</option>
             </select>
           </div>
         </div>
-
         <div class="row g-3 mt-2">
           <div class="col-md-2">
             <label class="form-label fw-bold">Number</label>
@@ -246,82 +162,6 @@ body {
             <label class="form-label fw-bold">Address</label>
             <input type="text" name="address" class="form-control"
                    value="{{ old('address', $invoice->address ?? '') }}">
-          </div>
-        </div>
-      </div>
-    </div>
-
-    {{-- Items --}}
-    <div class="card mb-4 shadow-sm">
-      <div class="card-header">Items</div>
-      <div class="card-body p-0">
-        <table class="table mb-0" id="items-table">
-          <thead>
-            <tr>
-              <th style="min-width:250px;">Item</th>
-              <th>Qty</th>
-              <th>Price ₱</th>
-              <th>Total ₱</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-          <tfoot>
-            <tr>
-              <td colspan="5" class="text-end p-2">
-                <button type="button" id="add-item" class="btn btn-success btn-add shadow-sm">+ Add Item</button>
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
-
-    {{-- Jobs --}}
-    <div class="card mb-4 shadow-sm">
-      <div class="card-header">Jobs</div>
-      <div class="card-body p-0">
-        <table class="table mb-0" id="jobs-table">
-          <thead>
-            <tr>
-              <th>Description</th>
-              <th>Technician</th>
-              <th>Total ₱</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-          <tfoot>
-            <tr>
-              <td colspan="4" class="text-end p-2">
-                <button type="button" id="add-job" class="btn btn-success btn-add shadow-sm">+ Add Job</button>
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-    </div>
-
-    {{-- Totals --}}
-    <div class="card mb-5 shadow-sm">
-      <div class="card-header">Totals Summary</div>
-      <div class="card-body">
-        <div class="row g-3">
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Subtotal</label>
-            <input type="number" step="0.01" name="subtotal" class="form-control" readonly>
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Total Discount</label>
-            <input type="number" step="0.01" name="total_discount" class="form-control" >
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">VAT (12%)</label>
-            <input type="number" step="0.01" name="vat_amount" class="form-control">
-          </div>
-          <div class="col-md-3">
-            <label class="form-label fw-bold">Grand Total</label>
-            <input type="number" step="0.01" name="grand_total" class="form-control" readonly>
           </div>
         </div>
       </div>
@@ -351,24 +191,51 @@ body {
           <tbody>
             @foreach($history as $h)
               <tr>
-                <td>{{ $h->client->name ?? $h->customer_name }}</td>
-                <td>{{ $h->vehicle->plate_number ?? $h->vehicle_name }}</td>
-                <td>
-                  <span class="badge bg-secondary">{{ ucfirst(str_replace('_',' ', $h->source_type)) }}</span>
-                </td>
+                <td>{{ $h->customer_display }}</td>
+<td>{{ $h->vehicle_display }}</td>
+
+                <td><span class="badge bg-secondary">{{ ucfirst(str_replace('_',' ', $h->source_type)) }}</span></td>
                 <td class="d-flex gap-2">
-                  <a href="{{ route('cashier.serviceorder.view', $h->id) }}" class="btn btn-sm btn-outline-info">View</a>
-                  <a href="{{ route('cashier.serviceorder.edit', $h->id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                  <form action="{{ route('cashier.serviceorder.update', $h->id) }}" method="POST" style="display:inline-flex;">
-                    @csrf @method('PUT')
-                    <select name="source_type" class="form-select form-select-sm btn-source-type" onchange="this.form.submit()">
-                      <option value="service_order" {{ $h->source_type === 'service_order' ? 'selected' : '' }}>Service Order</option>
-                      <option value="cancelled"     {{ $h->source_type === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
-                      <option value="invoicing"     {{ $h->source_type === 'invoicing' ? 'selected' : '' }}>Invoicing</option>
-                    </select>
-                    <input type="hidden" name="quick_update" value="1" />
-                  </form>
-                </td>
+  <form action="{{ route('cashier.serviceorder.destroy', $h->id) }}" method="POST" onsubmit="return confirm('Delete this Service Order?')">
+    @csrf
+    @method('DELETE')
+    <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete">
+      <i class="bi bi-trash"></i>
+    </button>
+  </form>
+
+  <button type="button" class="btn btn-sm btn-outline-primary" title="Edit"
+    onclick="openEditModal(
+      {{ $h->id }},
+      '{{ e($h->customer_name ?? $h->client->name) }}',
+      '{{ e($h->vehicle_name ?? $h->vehicle->plate_number) }}',
+      '{{ e($h->number ?? '') }}',
+      '{{ e($h->address ?? $h->client->address ?? '') }}',
+      '{{ e($h->plate ?? $h->vehicle->plate_number ?? '') }}',
+      '{{ e($h->model ?? $h->vehicle->model ?? '') }}',
+      '{{ e($h->year ?? $h->vehicle->year ?? '') }}',
+      '{{ e($h->color ?? $h->vehicle->color ?? '') }}',
+      '{{ e($h->odometer ?? $h->vehicle->odometer ?? '') }}',
+      '{{ e($h->payment_type ?? '') }}'
+    )">
+    <i class="bi bi-pencil-square"></i>
+  </button>
+
+  <form method="POST" action="{{ route('cashier.serviceorder.update', $h->id) }}">
+    @csrf
+    @method('PUT')
+    <input type="hidden" name="quick_update" value="1">
+    <select name="source_type" class="form-select form-select-sm" style="width: auto;"
+ onchange="quickUpdateStatus(this, {{ $h->id }})">
+
+      <option value="service_order" {{ $h->source_type == 'service_order' ? 'selected' : '' }}>Service Order</option>
+      <option value="invoicing" {{ $h->source_type == 'invoicing' ? 'selected' : '' }}>Invoicing</option>
+    </select>
+  </form>
+</td>
+
+
+
               </tr>
             @endforeach
           </tbody>
@@ -378,280 +245,179 @@ body {
   </div>
 </div>
 
+<!-- Edit Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <form id="editForm" method="POST">
+        @csrf
+        @method('PUT')
+        <div class="modal-header">
+          <h5 class="modal-title">Edit Service Order</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+  <input type="hidden" name="id" id="edit-id">
+  <div class="mb-3">
+    <label class="form-label">Customer</label>
+    <input type="text" class="form-control" name="customer_name" id="edit-customer">
+  </div>
+  <div class="mb-3">
+    <label class="form-label">Vehicle</label>
+    <input type="text" class="form-control" name="vehicle_name" id="edit-vehicle">
+  </div>
+  <div class="row g-2">
+    <div class="col-md-4">
+      <label class="form-label">Plate</label>
+      <input type="text" class="form-control" name="plate" id="edit-plate">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Model</label>
+      <input type="text" class="form-control" name="model" id="edit-model">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Year</label>
+      <input type="text" class="form-control" name="year" id="edit-year">
+    </div>
+  </div>
+  <div class="row g-2 mt-2">
+    <div class="col-md-4">
+      <label class="form-label">Color</label>
+      <input type="text" class="form-control" name="color" id="edit-color">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Odometer</label>
+      <input type="text" class="form-control" name="odometer" id="edit-odometer">
+    </div>
+    <div class="col-md-4">
+      <label class="form-label">Payment Type</label>
+      <select class="form-select" name="payment_type" id="edit-payment">
+        <option value="">— Select —</option>
+        <option value="cash">Cash</option>
+        <option value="debit">Debit</option>
+        <option value="credit">Credit</option>
+        <option value="non_cash">Non Cash</option>
+      </select>
+    </div>
+  </div>
+  <div class="row g-2 mt-2">
+    <div class="col-md-6">
+      <label class="form-label">Number</label>
+      <input type="number" class="form-control" name="number" id="edit-number">
+    </div>
+    <div class="col-md-6">
+      <label class="form-label">Address</label>
+      <input type="text" class="form-control" name="address" id="edit-address">
+    </div>
+  </div>
+</div>
+
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Update</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
 
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
-const parts = @json($parts);
-const technicians = @json($technicians);
+function openEditModal(id, customer, vehicle, number, address, plate, model, year, color, odometer, payment) {
+    $('#edit-id').val(id);
+    $('#edit-customer').val(customer);
+    $('#edit-vehicle').val(vehicle);
+    $('#edit-number').val(number);
+    $('#edit-address').val(address);
+    $('#edit-plate').val(plate);
+    $('#edit-model').val(model);
+    $('#edit-year').val(year);
+    $('#edit-color').val(color);
+    $('#edit-odometer').val(odometer);
+    $('#edit-payment').val(payment);
 
+    let formAction = "{{ url('/cashier/serviceorder') }}/" + id;
+    $('#editForm').attr('action', formAction);
+
+    var editModal = new bootstrap.Modal(document.getElementById('editModal'));
+    editModal.show();
+}
+
+</script>
+
+<script>
 const vehicles = @json($vehicles);
-
-// When client is selected, filter vehicles
 $('#client_id').on('change', function() {
   const clientId = $(this).val();
-  const filteredVehicles = vehicles.filter(v => v.client_id == clientId);
-
+  const filtered = vehicles.filter(v => v.client_id == clientId);
   $('#vehicle_id').empty().append('<option value="">— walk-in or choose —</option>');
-  filteredVehicles.forEach(v => {
-    $('#vehicle_id').append(`
-      <option value="${v.id}"
-        data-plate="${v.plate_number}"
-        data-model="${v.model}"
-        data-year="${v.year}"
-        data-color="${v.color}"
-        data-odometer="${v.odometer}">
-        ${v.plate_number}
-      </option>
-    `);
+  filtered.forEach(v => {
+    $('#vehicle_id').append(`<option value="${v.id}"
+      data-plate="${v.plate_number}" data-model="${v.model}" data-year="${v.year}"
+      data-color="${v.color}" data-odometer="${v.odometer}">${v.plate_number}</option>`);
   });
-
-  // Reinitialize select2
-  $('#vehicle_id').select2({
-    placeholder: '— walk-in or choose —',
-    allowClear: true
-  });
+  $('#vehicle_id').select2({ placeholder: '— walk-in or choose —', allowClear: true });
 });
-
-
-// VEHICLE DETAILS AUTOFILL
 $('#vehicle_id').on('change', function() {
-  let selected = $(this).find(':selected');
-  $('#plate').val(selected.data('plate') || '');
-  $('#model').val(selected.data('model') || '');
-  $('#year').val(selected.data('year') || '');
-  $('#color').val(selected.data('color') || '');
-  $('#odometer').val(selected.data('odometer') || '');
-});
-
-function addItemRow(data = null) {
-  const idx      = $('#items-table tbody tr').length;
-  const partId   = data && data.part_id             ? data.part_id             : '';
-  const qty      = data && data.quantity            ? data.quantity            : 1;
-  const orig     = data && data.original_price !== undefined ? data.original_price : '';
-  const lineTotal = (orig && qty) ? (orig * qty).toFixed(2) : '0.00';
-
-
-  const row = $(`<tr>
-    <td>
-      <div class="input-group">
-        <select name="items[${idx}][part_id]"
-                class="form-select form-select-sm part-select"
-                style="width:100%">
-          <option value="">-- search part --</option>
-        </select>
-        <button type="button" class="btn btn-warning btn-sm manual-toggle">
-          Manual
-        </button>
-      </div>
-      <div class="manual-fields mt-2 d-none">
-        <input type="text"   name="items[${idx}][manual_part_name]"         class="form-control form-control-sm mb-1" placeholder="Part Name">
-        <input type="text"   name="items[${idx}][manual_serial_number]"     class="form-control form-control-sm mb-1" placeholder="Serial #">
-        <input type="number" name="items[${idx}][manual_acquisition_price]" class="form-control form-control-sm mb-1" placeholder="Acquisition ₱">
-        <input type="number" name="items[${idx}][manual_selling_price]"     class="form-control form-control-sm mb-1" placeholder="Selling ₱">
-        <div class="d-flex gap-2">
-          <button type="button" class="btn btn-sm btn-secondary cancel-manual">Cancel</button>
-          <button type="button" class="btn btn-sm btn-success save-manual">Save</button>
-        </div>
-      </div>
-    </td>
-    <td><input name="items[${idx}][quantity]" type="number" class="form-control form-control-sm" value="${qty}"></td>
-  <td><input name="items[${idx}][original_price]" type="number" step="0.01" class="form-control form-control-sm" value="${orig}"></td>
-  <td class="col-line-total">${lineTotal}</td>
-    <td><button type="button" class="btn btn-sm btn-danger remove-btn">✕</button></td>
-  </tr>`);
-
-  // ─── select2 setup ───
-  const select2Data = [
-  { id:'', text:'-- search part --', price:0 },
-  ...parts.map(p=>({
-    id: p.id,
-    text: `${p.item_name} - Stock: ${p.quantity}`,
-    price: Number(p.selling),
-    disabled: p.quantity <= 0  // disables select2 choice
-  }))
-];
-
-const $partSelect = row.find('.part-select');
-
-$partSelect.select2({
-  data: select2Data,
-  placeholder: '-- search part --',
-  allowClear: true,
-  dropdownAutoWidth: false, // important: disables auto-stretch
-  width: 'style',           // use the style width (from .form-select style)
-  dropdownParent: $('#items-table'),
-  templateResult: function (data) {
-    if (!data.id) return data.text;
-    if (data.disabled) {
-      return $('<span style="color:#dc3545;">' + data.text + ' (Out of stock)</span>');
-    }
-    return $('<span>' + data.text + '</span>');
-  },
-  templateSelection: function (data) {
-    if (!data.id) return data.text;
-    return data.text;
-  }
-});
-
-
-
-  // preselect on edit
-  if(partId) {
-    $partSelect.val(partId).trigger('change');
-    const sel = select2Data.find(o=>o.id==partId);
-    if(sel && sel.price) {
-      row.find('[name$="[original_price]"]').val(sel.price.toFixed(2));
-      row.find('[name$="[discounted_price]"]').val(sel.price.toFixed(2));
-    }
-  }
-
-  // inventory selection → pricing
-  $partSelect.on('select2:select', e=>{
-    const price = e.params.data.price||0;
-    row.find('[name$="[original_price]"]').val(price.toFixed(2));
-    row.find('[name$="[quantity]"]').val(1);
-    recalc();
-});
-$partSelect.on('select2:clear', ()=>{
-    row.find('[name$="[original_price]"]').val('');
-    recalc();
-});
-
-
-  // qty/discount inputs → recalc
-  row.find('[name$="[quantity]"], [name$="[original_price]"]').on('input', recalc);
-
-
-  // remove row
-  row.find('.remove-btn').on('click', ()=>{ row.remove(); recalc(); });
-
-  // ─── Manual popup handlers ───
-
-  // show manual form
-  row.find('.manual-toggle').on('click', ()=>{
-    row.find('.manual-fields').removeClass('d-none');
-    row.find('.input-group').addClass('d-none');
-  });
-
-  // cancel manual
-  row.find('.cancel-manual').on('click', ()=>{
-    row.find('.manual-fields').addClass('d-none');
-    row.find('.input-group').removeClass('d-none');
-  });
-
-  // save manual entry
-  row.find('.save-manual').on('click', ()=>{
-    const sell = parseFloat(row.find('[name$="[manual_selling_price]"]').val())||0;
-    row.find('[name$="[original_price]"]').val(sell.toFixed(2));
-
-    row.find('[name$="[quantity]"]').val(1);
-    recalc();
-    row.find('.manual-fields').addClass('d-none');
-    row.find('.input-group').removeClass('d-none');
-  });
-
-  // append row & final recalc
-  $('#items-table tbody').append(row);
-  recalc();
-}
-// JOB ROW HANDLING (unchanged)
-function addJobRow(data = null) {
-  const idx = $('#jobs-table tbody tr').length;
-  const desc = data && data.job_description ? data.job_description : '';
-  const techId = data && data.technician_id ? data.technician_id : '';
-  const total = data && data.total ? data.total : '';
-  const row = $(`<tr>
-      <td><input name="jobs[${idx}][job_description]" class="form-control form-control-sm" value="${desc}"></td>
-      <td>
-        <select name="jobs[${idx}][technician_id]" class="form-select form-select-sm">
-          <option value="">-- select tech --</option>
-          ${technicians.map(t => `<option value="${t.id}" ${techId == t.id ? 'selected' : ''}>${t.name}</option>`).join('')}
-        </select>
-      </td>
-      <td><input name="jobs[${idx}][total]" type="number" step="0.01" class="form-control form-control-sm" value="${total}"></td>
-      <td><button type="button" class="btn btn-sm btn-danger remove-btn">✕</button></td>
-    </tr>`);
-  row.find('[name$="[total]"]').on('input', recalc);
-  row.find('.remove-btn').on('click', function () {
-    row.remove(); recalc();
-  });
-  $('#jobs-table tbody').append(row);
-  recalc();
-}
-
-// TOTALS CALCULATION (unchanged)
-function recalc() {
-  let itemsTotal = 0;
-  let jobsTotal  = 0;
-
-  // Sum up items
-  $('#items-table tbody tr').each(function() {
-    const $r = $(this);
-    const q  = +$r.find('[name$="[quantity]"]').val() || 0;
-    const p  = +$r.find('[name$="[original_price]"]').val() || 0;
-    const lineT = q * p;
-    itemsTotal += lineT;
-    $r.find('.col-line-total').text(lineT.toFixed(2));
-  });
-
-  // Sum up jobs
-  $('#jobs-table tbody tr').each(function() {
-    jobsTotal += +$(this).find('[name$="[total]"]').val() || 0;
-  });
-
-  // Total before discount
-  const subtotal = itemsTotal + jobsTotal;
-
-  // Manual discount
-  const discount = parseFloat($('[name="total_discount"]').val()) || 0;
-
-  // Discounted grand total
-  const grand = subtotal - discount;
-
-  // VAT is on the net amount
-  const vat = grand * (0.12 / 1.12);
-
-  // Fill fields
-  $('[name=subtotal]').val(subtotal.toFixed(2));
-  $('[name=vat_amount]').val(vat.toFixed(2));
-  $('[name=grand_total]').val(grand.toFixed(2));
-}
-
-
-// INIT (unchanged)
-$('#add-item').on('click', () => addItemRow());
-$('#add-job').on('click', () => addJobRow());
-$('[name="total_discount"]').on('input', recalc);
-$(function() {
-  @if(isset($invoice) && $invoice->items && $invoice->items->count())
-    @foreach($invoice->items as $item)
-      addItemRow({
-        part_id: '{{ $item->part_id }}',
-        quantity: '{{ $item->quantity }}',
-        original_price: '{{ $item->original_price }}',
-        
-      });
-    @endforeach
-  @else
-    addItemRow();
-  @endif
-
-  @if(isset($invoice) && $invoice->jobs && $invoice->jobs->count())
-    @foreach($invoice->jobs as $job)
-      addJobRow({
-        job_description: '{{ $job->job_description }}',
-        technician_id: '{{ $job->technician_id }}',
-        total: '{{ $job->total }}'
-      });
-    @endforeach
-  @else
-    addJobRow();
-  @endif
-
-  recalc();
+  let s = $(this).find(':selected');
+  $('#plate').val(s.data('plate')||''); $('#model').val(s.data('model')||'');
+  $('#year').val(s.data('year')||''); $('#color').val(s.data('color')||''); $('#odometer').val(s.data('odometer')||'');
 });
 </script>
+<script>
+$(document).ready(function() {
+    // Run checks on load
+    toggleFields();
+
+    // Watch inputs
+    $('input[name="customer_name"], input[name="vehicle_name"]').on('input', function() {
+        toggleFields();
+    });
+
+    $('#client_id, #vehicle_id').on('change', function() {
+        toggleFields();
+    });
+
+    function toggleFields() {
+        let manualCustomer = $('input[name="customer_name"]').val().trim();
+        let manualVehicle = $('input[name="vehicle_name"]').val().trim();
+        let clientSelected = $('#client_id').val();
+        let vehicleSelected = $('#vehicle_id').val();
+
+        if (manualCustomer !== '' || manualVehicle !== '') {
+            // If manual typing, hide both dropdowns
+            $('#client_id').closest('.col-md-3').hide();
+            $('#vehicle_id').closest('.col-md-3').hide();
+            // Show manual inputs
+            $('input[name="customer_name"]').closest('.col-md-3').show();
+            $('input[name="vehicle_name"]').closest('.col-md-3').show();
+        } else if (clientSelected || vehicleSelected) {
+            // If dropdown used, hide both manual inputs
+            $('input[name="customer_name"]').closest('.col-md-3').hide();
+            $('input[name="vehicle_name"]').closest('.col-md-3').hide();
+            // Show dropdowns
+            $('#client_id').closest('.col-md-3').show();
+            $('#vehicle_id').closest('.col-md-3').show();
+        } else {
+            // Nothing filled yet, show all
+            $('#client_id').closest('.col-md-3').show();
+            $('#vehicle_id').closest('.col-md-3').show();
+            $('input[name="customer_name"]').closest('.col-md-3').show();
+            $('input[name="vehicle_name"]').closest('.col-md-3').show();
+        }
+    }
+});
+</script>
+<script>
+function quickUpdateStatus(selectEl, id) {
+    const form = selectEl.closest('form');
+    form.submit();
+    // optionally remove row immediately
+    $(selectEl).closest('tr').fadeOut(300, function() { $(this).remove(); });
+}
+</script>
+
 
 @endsection
