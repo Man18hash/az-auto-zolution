@@ -184,6 +184,9 @@ Route::middleware(['auth', 'role:cashier'])
           Route::get('invoice/{id}/view', [InvoiceController::class, 'view'])->name('invoice.view');
           Route::view('invoice-blank', 'cashier.invoice-blank')->name('invoice-blank');
 
+          Route::get('ajax/clients', [InvoiceController::class, 'ajaxClients'])->name('ajax.clients');
+          Route::get('ajax/vehicles', [InvoiceController::class, 'ajaxVehicles'])->name('ajax.vehicles');
+
           // Inventory CRUD
           Route::resource('inventory', InventoryController::class)
                ->only(['index', 'store', 'update', 'destroy'])
