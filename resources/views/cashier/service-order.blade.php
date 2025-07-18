@@ -47,6 +47,10 @@ body {
 .btn-primary:hover {
     background: linear-gradient(135deg, #357ab8, #4a90e2);
 }
+
+.select2-container {
+    width: 100% !important;
+}
 </style>
 
 <div class="container mt-4">
@@ -77,7 +81,8 @@ body {
         <div class="row g-3">
           <div class="col-md-3">
             <label class="form-label">Client</label>
-            <select name="client_id" id="client_id" class="form-select">
+            <select name="client_id" id="client_id" class="form-select select2">
+
               <option value="">— walk‐in or choose —</option>
               @foreach($clients as $c)
                 <option value="{{ $c->id }}"
@@ -349,17 +354,7 @@ function openEditModal(id, customer, vehicle, number, address, plate, model, yea
 
 <script>
 const vehicles = @json($vehicles);
-$('#client_id').on('change', function() {
-  const clientId = $(this).val();
-  const filtered = vehicles.filter(v => v.client_id == clientId);
-  $('#vehicle_id').empty().append('<option value="">— walk-in or choose —</option>');
-  filtered.forEach(v => {
-    $('#vehicle_id').append(`<option value="${v.id}"
-      data-plate="${v.plate_number}" data-model="${v.model}" data-year="${v.year}"
-      data-color="${v.color}" data-odometer="${v.odometer}">${v.plate_number}</option>`);
-  });
-  $('#vehicle_id').select2({ placeholder: '— walk-in or choose —', allowClear: true });
-});
+
 $('#vehicle_id').on('change', function() {
   let s = $(this).find(':selected');
   $('#plate').val(s.data('plate')||''); $('#model').val(s.data('model')||'');
@@ -368,18 +363,39 @@ $('#vehicle_id').on('change', function() {
 </script>
 <script>
 $(document).ready(function() {
-    // Run checks on load
-    toggleFields();
-
-    // Watch inputs
-    $('input[name="customer_name"], input[name="vehicle_name"]').on('input', function() {
-        toggleFields();
+    // Initialize Select2 for Client and Vehicle dropdowns
+    $('#client_id').select2({
+        placeholder: '— walk‐in or choose —',
+        allowClear: true
     });
 
-    $('#client_id, #vehicle_id').on('change', function() {
-        toggleFields();
+    $('#vehicle_id').select2({
+        placeholder: '— walk-in or choose —',
+        allowClear: true
     });
 
+    // Handle dependent vehicle list when client changes
+    const vehicles = @json($vehicles);
+    $('#client_id').on('change', function() {
+        const clientId = $(this).val();
+        const filtered = vehicles.filter(v => v.client_id == clientId);
+        $('#vehicle_id').empty().append('<option value="">— walk-in or choose —</option>');
+        filtered.forEach(v => {
+            $('#vehicle_id').append(`<option value="${v.id}" data-plate="${v.plate_number}" data-model="${v.model}" data-year="${v.year}" data-color="${v.color}" data-odometer="${v.odometer}">${v.plate_number}</option>`);
+        });
+        $('#vehicle_id').trigger('change'); // re-apply select2
+    });
+
+    $('#vehicle_id').on('change', function() {
+        let s = $(this).find(':selected');
+        $('#plate').val(s.data('plate') || '');
+        $('#model').val(s.data('model') || '');
+        $('#year').val(s.data('year') || '');
+        $('#color').val(s.data('color') || '');
+        $('#odometer').val(s.data('odometer') || '');
+    });
+
+    // Show/hide client/vehicle fields
     function toggleFields() {
         let manualCustomer = $('input[name="customer_name"]').val().trim();
         let manualVehicle = $('input[name="vehicle_name"]').val().trim();
@@ -387,27 +403,27 @@ $(document).ready(function() {
         let vehicleSelected = $('#vehicle_id').val();
 
         if (manualCustomer !== '' || manualVehicle !== '') {
-            // If manual typing, hide both dropdowns
             $('#client_id').closest('.col-md-3').hide();
             $('#vehicle_id').closest('.col-md-3').hide();
-            // Show manual inputs
             $('input[name="customer_name"]').closest('.col-md-3').show();
             $('input[name="vehicle_name"]').closest('.col-md-3').show();
         } else if (clientSelected || vehicleSelected) {
-            // If dropdown used, hide both manual inputs
             $('input[name="customer_name"]').closest('.col-md-3').hide();
             $('input[name="vehicle_name"]').closest('.col-md-3').hide();
-            // Show dropdowns
             $('#client_id').closest('.col-md-3').show();
             $('#vehicle_id').closest('.col-md-3').show();
         } else {
-            // Nothing filled yet, show all
             $('#client_id').closest('.col-md-3').show();
             $('#vehicle_id').closest('.col-md-3').show();
             $('input[name="customer_name"]').closest('.col-md-3').show();
             $('input[name="vehicle_name"]').closest('.col-md-3').show();
         }
     }
+
+    toggleFields();
+
+    $('input[name="customer_name"], input[name="vehicle_name"]').on('input', toggleFields);
+    $('#client_id, #vehicle_id').on('change', toggleFields);
 });
 </script>
 <script>
