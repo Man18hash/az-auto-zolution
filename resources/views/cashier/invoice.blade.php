@@ -413,67 +413,83 @@
 <script>
 const parts = @json($parts);
 const technicians = @json($technicians);
-const clients = @json($clients);  // Assuming clients data is available
-  const vehicles = @json($vehicles);  // Assuming vehicles data is available
+
 
 
 
   // Client and Vehicle Search
-  $('#client_id').select2({
-  data: clients.map(client => ({ id: client.id, text: client.name })),
+// ─── CLIENT SELECT2 ───
+$('#client_id').select2({
   placeholder: '-- search client --',
   allowClear: true,
-  dropdownParent: $('#invoiceModal .modal-content')  // 👈 important for modals
+  ajax: {
+    url: '{{ route("cashier.ajax.clients") }}',
+
+    dataType: 'json',
+    delay: 250,
+    data: params => ({ q: params.term }),
+    processResults: data => ({
+      results: data.map(client => ({
+        id: client.id,
+        text: client.name,
+        number: client.number,
+        address: client.address
+      }))
+    })
+  },
+  dropdownParent: $('#invoiceModal .modal-content')
+});
+
+// Clear vehicle select when new client is selected
+$('#client_id').on('select2:select', () => {
+  $('#vehicle_id').val(null).trigger('change');
 });
 
 
-  $('#vehicle_id').select2({
-    placeholder: '-- search vehicle --',
-    allowClear: true
-  });
-
-  /// When a client is selected, fetch and populate vehicle options with data attributes
-$('#client_id').on('change', function() {
-  const clientId = $(this).val();
-  const filteredVehicles = vehicles.filter(vehicle => vehicle.client_id == clientId);
-
-  // Clear and add default option
-  $('#vehicle_id').empty().append(`<option value="">— walk-in or choose —</option>`);
-
-  // Append filtered vehicles as options with data attributes
-  filteredVehicles.forEach(vehicle => {
-    $('#vehicle_id').append(`
-      <option value="${vehicle.id}"
-        data-plate="${vehicle.plate_number || ''}"
-        data-model="${vehicle.model || ''}"
-        data-year="${vehicle.year || ''}"
-        data-color="${vehicle.color || ''}"
-        data-odometer="${vehicle.odometer || ''}">
-        ${vehicle.plate_number}
-      </option>
-    `);
-  });
-
-  // Re-initialize select2 after appending options
-  $('#vehicle_id').select2({
-    placeholder: '-- search vehicle --',
-    allowClear: true
-  });
-
-  // ─── New: auto-populate Number & Address ───
-  const client = clients.find(c => String(c.id) === clientId);
-  $('input[name="number"]').val(client?.number ?? '');
-  $('input[name="address"]').val(client?.address ?? '');
+// ─── On Client Selected → Autofill Number & Address ───
+$('#client_id').on('select2:select', function (e) {
+  const client = e.params.data;
+  $('input[name="number"]').val(client.number || '');
+  $('input[name="address"]').val(client.address || '');
 });
-// VEHICLE DETAILS AUTOFILL
-$('#vehicle_id').on('change', function() {
-  let selected = $(this).find(':selected');
-  $('#plate').val(selected.data('plate') || '');
-  $('#model').val(selected.data('model') || '');
-  $('#year').val(selected.data('year') || '');
-  $('#color').val(selected.data('color') || '');
-  $('#odometer').val(selected.data('odometer') || '');
+
+// ─── VEHICLE SELECT2 ───
+$('#vehicle_id').select2({
+  placeholder: '-- search vehicle --',
+  allowClear: true,
+  ajax: {
+    url: '{{ route("cashier.ajax.vehicles") }}',
+    dataType: 'json',
+    delay: 250,
+    data: params => ({
+      q: params.term,
+      client_id: $('#client_id').val()
+    }),
+    processResults: data => ({
+      results: data.map(vehicle => ({
+        id: vehicle.id,
+        text: vehicle.plate_number,
+        plate_number: vehicle.plate_number,
+        model: vehicle.model,
+        year: vehicle.year,
+        color: vehicle.color,
+        odometer: vehicle.odometer
+      }))
+    })
+  },
+  dropdownParent: $('#invoiceModal .modal-content')
 });
+
+// ─── On Vehicle Selected → Autofill Details ───
+$('#vehicle_id').on('select2:select', function (e) {
+  const v = e.params.data;
+  $('#plate').val(v.plate_number || '');
+  $('#model').val(v.model || '');
+  $('#year').val(v.year || '');
+  $('#color').val(v.color || '');
+  $('#odometer').val(v.odometer || '');
+});
+
 
 // Item row with select2 and correct price autopopulate!
 // ─── Item row with Manual‐toggle + select2 autopopulate ───
