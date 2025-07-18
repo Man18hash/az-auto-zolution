@@ -25,7 +25,13 @@
 .select2-container {
   width: 300px !important; /* ensures container matches */
 }
+.select2-container--open {
+  z-index: 100999 !important;
+}
 
+.select2-dropdown {
+  z-index: 100999 !important;
+}
 </style>
 
 <div class="container mt-4 mb-3">
@@ -410,12 +416,16 @@ const technicians = @json($technicians);
 const clients = @json($clients);  // Assuming clients data is available
   const vehicles = @json($vehicles);  // Assuming vehicles data is available
 
+
+
   // Client and Vehicle Search
   $('#client_id').select2({
-    data: clients.map(client => ({ id: client.id, text: client.name })),
-    placeholder: '-- search client --',
-    allowClear: true
-  });
+  data: clients.map(client => ({ id: client.id, text: client.name })),
+  placeholder: '-- search client --',
+  allowClear: true,
+  dropdownParent: $('#invoiceModal .modal-content')  // 👈 important for modals
+});
+
 
   $('#vehicle_id').select2({
     placeholder: '-- search vehicle --',
