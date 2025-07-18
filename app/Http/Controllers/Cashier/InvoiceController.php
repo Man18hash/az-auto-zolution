@@ -62,7 +62,7 @@ class InvoiceController extends Controller
             'address' => 'nullable|string',
         ]);
 
-        
+
 
         // ✅ Automatically create client if none selected but manual name exists
         $clientId = $request->client_id;
@@ -286,7 +286,7 @@ class InvoiceController extends Controller
             'invoice_no' => $request->invoice_no,
         ]);
 
-       
+
 
         // Update items (delete old, add new)
         $invoice->items()->delete();
@@ -376,5 +376,28 @@ class InvoiceController extends Controller
         ])->findOrFail($id);
 
         return view('cashier.invoice-view', compact('invoice'));
+    }
+
+    public function ajaxClients(Request $request)
+    {
+        $search = $request->get('q', '');
+        return Client::where('name', 'like', "%$search%")
+            ->select('id', 'name', 'phone as number', 'address')
+
+            ->limit(20)
+            ->get();
+    }
+
+    public function ajaxVehicles(Request $request)
+    {
+        $search = $request->get('q', '');
+        $clientId = $request->get('client_id');
+
+        return Vehicle::where('plate_number', 'like', "%$search%")
+            ->when($clientId, fn($q) => $q->where('client_id', $clientId))
+            ->select('id', 'plate_number', 'model', 'year', 'color', 'odometer')
+            ->limit(20)
+            ->get();
+
     }
 }
