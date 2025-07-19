@@ -132,6 +132,11 @@ Route::middleware(['auth', 'role:cashier'])
      ->name('cashier.')
      ->group(function () {
 
+          Route::get('ajax/serviceorder/clients', [ServiceOrderController::class, 'ajaxClients'])
+               ->name('serviceorder.ajax.clients');
+
+          Route::get('ajax/quotation/clients', [QuotationController::class, 'ajaxSearch'])->name('quotation.ajax.clients');
+
           // Dashboard
           Route::get('home', [HomeController::class, 'index'])->name('home');
           Route::get('dashboard', [HomeController::class, 'index'])->name('dashboard');

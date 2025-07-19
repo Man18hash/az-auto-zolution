@@ -9,6 +9,7 @@ use App\Models\Client;
 use App\Models\Vehicle;
 use App\Models\Inventory;
 use App\Models\Technician;
+use Illuminate\Support\Facades\DB;
 
 class ServiceOrderController extends Controller
 {
@@ -108,7 +109,7 @@ class ServiceOrderController extends Controller
         ]);
 
 
-        
+
 
 
         // Save items (inventory OR manual)
@@ -311,5 +312,33 @@ class ServiceOrderController extends Controller
         // This assumes you want to reuse the view for showing details
         return view('cashier.service-order-view', compact('invoice'));
     }
+
+    public function ajaxClients(Request $request)
+    {
+        $search = $request->input('q');
+        $page = $request->input('page', 1);
+        $perPage = 10;
+
+        $query = \App\Models\Client::query();
+
+        if ($search) {
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        $results = $query->paginate($perPage, ['*'], 'page', $page);
+
+        return response()->json([
+            'results' => $results->map(function ($client) {
+                return [
+                    'id' => $client->id,
+                    'text' => $client->name
+                ];
+            }),
+            'pagination' => [
+                'more' => $results->hasMorePages()
+            ]
+        ]);
+    }
+
 
 }

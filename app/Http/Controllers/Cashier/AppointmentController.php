@@ -31,7 +31,8 @@ class AppointmentController extends Controller
                     'title' => ($h->client->name ?? $h->customer_name)
                         . ($h->vehicle ? ' - ' . $h->vehicle->plate_number : ''),
                     'start' => $h->appointment_date,
-                    'url' => route('cashier.appointment.view', $h->id),
+                    'url' => route('cashier.appointment.edit', $h->id),
+
                     'color' => match ($h->source_type) {
                         'cancelled' => '#dc3545',     // red
                         'service_order' => '#6c757d', // gray
@@ -151,7 +152,7 @@ class AppointmentController extends Controller
                     'title' => ($h->client->name ?? $h->customer_name)
                         . ($h->vehicle ? ' - ' . $h->vehicle->plate_number : ''),
                     'start' => $h->appointment_date,
-                    'url' => route('cashier.appointment.view', $h->id),
+                    'url' => route('cashier.appointment.edit', $h->id),
                     'color' => match ($h->source_type) {
                         'cancelled' => '#dc3545',
                         'service_order' => '#6c757d',
