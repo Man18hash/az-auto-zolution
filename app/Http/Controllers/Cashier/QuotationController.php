@@ -309,4 +309,37 @@ class QuotationController extends Controller
 
         return view('cashier.quotation-view', compact('invoice'));
     }
+
+    public function ajaxSearch(Request $request)
+    {
+        $search = $request->q;
+        $page = $request->get('page', 1);
+        $perPage = 10;
+
+        $query = \App\Models\Client::query();
+
+        if ($search) {
+            $query->where('name', 'like', "%$search%");
+        }
+
+        $total = $query->count();
+
+        $clients = $query
+            ->orderBy('name')
+            ->skip(($page - 1) * $perPage)
+            ->take($perPage)
+            ->get();
+
+        return response()->json([
+            'results' => $clients->map(fn($c) => [
+                'id' => $c->id,
+                'text' => $c->name,
+                'phone' => $c->phone,
+                'address' => $c->address,
+            ]),
+            'pagination' => ['more' => ($page * $perPage) < $total]
+        ]);
+    }
+
+
 }

@@ -306,7 +306,7 @@
       <td>{{ $h->appointment_date ? \Carbon\Carbon::parse($h->appointment_date)->format('Y-m-d') : '-' }}</td>
       <td>{{ $h->created_at->format('Y-m-d H:i') }}</td>
       <td class="d-flex gap-1">
-      <a href="{{ route('cashier.appointment.view', $h->id) }}" class="btn btn-sm btn-outline-info">View</a>
+      
       <a href="{{ route('cashier.appointment.edit', $h->id) }}"
         class="btn btn-sm btn-outline-primary">Edit</a>
       <form action="{{ route('cashier.appointment.update', $h->id) }}" method="POST"

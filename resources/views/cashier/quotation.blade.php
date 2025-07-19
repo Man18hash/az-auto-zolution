@@ -143,14 +143,8 @@
       <div class="row g-3">
         <div class="col-md-3" id="client-dropdown-wrap">
         <label class="form-label">Client</label>
-        <select name="client_id" id="client_id" class="form-select">
-          <option value="">— walk‐in or choose —</option>
-          @foreach($clients as $c)
-        <option value="{{ $c->id }}" {{ old('client_id', $invoice->client_id ?? '') == $c->id ? 'selected' : '' }}>
-        {{ $c->name }}
-        </option>
-      @endforeach
-        </select>
+        <select name="client_id" id="client_id" class="form-select"></select>
+
         </div>
         <div class="col-md-3" id="manual-customer-wrap">
         <label class="form-label">Manual Customer Name</label>
@@ -406,10 +400,35 @@
     }
 
     $('#client_id').select2({
-      data: clients.map(c => ({ id: c.id, text: c.name })),
-      placeholder: '-- search client --',
-      allowClear: true
-    }).on('select2:select change', autofillContact);
+  ajax: {
+    url: '{{ route("cashier.quotation.ajax.clients") }}',
+    dataType: 'json',
+    delay: 250,
+    data: function (params) {
+      return {
+        q: params.term || '',
+        page: params.page || 1
+      };
+    },
+    processResults: function (data, params) {
+      params.page = params.page || 1;
+
+      return {
+        results: data.results,
+        pagination: {
+          more: data.pagination.more
+        }
+      };
+    },
+    cache: true
+  },
+  minimumInputLength: 0,
+  placeholder: '-- search client --',
+  allowClear: true
+});
+
+
+
 
     $('#vehicle_id').select2({
       placeholder: '-- search vehicle --',
@@ -522,7 +541,7 @@
       }
 
 
-      
+
 
       row.find('[name$="[quantity]"], [name$="[original_price]"]').on('input', recalc);
       row.find('.remove-btn').on('click', () => { row.remove(); recalc(); });

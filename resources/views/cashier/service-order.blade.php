@@ -81,16 +81,9 @@ body {
         <div class="row g-3">
           <div class="col-md-3">
             <label class="form-label">Client</label>
-            <select name="client_id" id="client_id" class="form-select select2">
+            <select name="client_id" id="client_id" class="form-select"></select>
 
-              <option value="">— walk‐in or choose —</option>
-              @foreach($clients as $c)
-                <option value="{{ $c->id }}"
-                  {{ old('client_id', $invoice->client_id ?? '') == $c->id ? 'selected' : '' }}>
-                  {{ $c->name }}
-                </option>
-              @endforeach
-            </select>
+
           </div>
           <div class="col-md-3">
             <label class="form-label">Manual Customer Name</label>
@@ -365,9 +358,37 @@ $('#vehicle_id').on('change', function() {
 $(document).ready(function() {
     // Initialize Select2 for Client and Vehicle dropdowns
     $('#client_id').select2({
-        placeholder: '— walk‐in or choose —',
-        allowClear: true
-    });
+    ajax: {
+        url: '{{ route("cashier.serviceorder.ajax.clients") }}',
+        dataType: 'json',
+        delay: 250,
+        data: function (params) {
+            return {
+                q: params.term || '',
+                page: params.page || 1
+            };
+        },
+        processResults: function (data, params) {
+            params.page = params.page || 1;
+            return {
+                results: data.results,
+                pagination: {
+                    more: data.pagination.more
+                }
+            };
+        },
+        cache: true
+    },
+    placeholder: '— walk‐in or choose —',
+    minimumInputLength: 0,
+    allowClear: true
+});
+
+// Optional: auto-trigger search when opened
+$('#client_id').on('select2:open', function () {
+    $('.select2-search__field').trigger('input');
+});
+
 
     $('#vehicle_id').select2({
         placeholder: '— walk-in or choose —',
