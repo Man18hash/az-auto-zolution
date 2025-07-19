@@ -2,15 +2,15 @@
 @section('title','Sales Report')
 
 @section('content')
-<div class="col-12 col-md-auto mb-3">
+<!--<div class="col-12 col-md-auto mb-3">
   <a href="{{ route('admin.sales-report.export', ['start_date'=>$startDate,'end_date'=>$endDate]) }}"
      class="btn btn-success px-4 fw-bold" target="_blank">
-    <i class="fas fa-file-excel me-1"></i> Export to Excel
+     <i class="fas fa-file-excel me-1"></i> Export to Excel 
   </a>
-</div>
+</div>-->
 
 <div class="container-fluid px-2 px-md-4">
-  <h2 class="mb-4 fw-bold">Sales Report</h2>
+  <h2 class="mb-4 fw-bold">Sales Report</h2> 
 
   {{-- Filter Form --}}
   <form method="GET" action="{{ route('admin.sales-report') }}"

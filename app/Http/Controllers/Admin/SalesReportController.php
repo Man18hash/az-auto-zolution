@@ -29,9 +29,11 @@ class SalesReportController extends Controller
 
         $allItems = [];
         foreach ($invoices as $invoice) {
-            // ITEMS
-            foreach ($invoice->items as $item) {
-                $allItems[] = [
+            
+             foreach ($invoice->items as $item) {
+                // compute net unit price
+                $netUnit = $item->original_price - $item->discounted_price;
+                 $allItems[] = [
                     'invoice_id'             => $invoice->id,              
                     'invoice_no'             => $invoice->invoice_no,      
                     'date'                   => $invoice->created_at->format('Y-m-d'),
@@ -46,12 +48,7 @@ class SalesReportController extends Controller
                                                  ?? ($item->part->item_name      ?? '-'),
                     'acquisition_price'      => $item->manual_acquisition_price
                                                  ?? ($item->part->acquisition_price ?? 0),
-                    'selling_price'          => $item->manual_selling_price
-                                                 ?? (
-                                                     $item->discounted_price > 0
-                                                       ? $item->discounted_price
-                                                       : $item->original_price
-                                                   ),
+                    'selling_price'        => $netUnit,
                     'quantity'               => $item->quantity,
                     'line_total'             => $item->line_total ?? 0,
                     'remarks'                => $invoice->remarks ?? '',
@@ -130,7 +127,9 @@ class SalesReportController extends Controller
         $allItems = [];
         foreach ($invoices as $invoice) {
             foreach ($invoice->items as $item) {
+                $netUnit = $item->original_price - $item->discounted_price;
                 $allItems[] = [
+
                     'invoice_id'             => $invoice->id,
                     'invoice_no'             => $invoice->invoice_no,
                     'date'                   => $invoice->created_at->format('Y-m-d'),
@@ -143,12 +142,7 @@ class SalesReportController extends Controller
                                                  ?? ($item->part->item_name      ?? '-'),
                     'acquisition_price'      => $item->manual_acquisition_price
                                                  ?? ($item->part->acquisition_price ?? 0),
-                    'selling_price'          => $item->manual_selling_price
-                                                 ?? (
-                                                     $item->discounted_price > 0
-                                                       ? $item->discounted_price
-                                                       : $item->original_price
-                                                   ),
+                    'selling_price'        => $netUnit,
                     'quantity'               => $item->quantity,
                     'line_total'             => $item->line_total ?? 0,
                     'remarks'                => $invoice->remarks ?? '',
