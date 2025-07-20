@@ -26,6 +26,21 @@
     .alert {
     transition: all 0.5s ease;
     }
+
+    .fixed-section {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    background: #f6f8fa;
+    padding-bottom: 1rem;
+    }
+
+    .scrollable-tables {
+    max-height: calc(100vh - 380px);
+    /* Adjust based on your header size */
+    overflow-y: auto;
+    padding-top: 1rem;
+    }
   </style>
 
   <div class="container">
@@ -119,21 +134,21 @@
 
     {{-- Clients Table --}}
     <div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card-header d-flex justify-content-between align-items-center sticky-top bg-white"
+      style="top: 0; z-index: 1020;">
       <span>Clients List</span>
       <input id="clientSearch" type="text" class="form-control form-control-sm shadow-sm rounded"
       placeholder="🔍 Search client..." style="width: 220px;">
     </div>
-    <div class="card-body p-0">
+    <div class="scrollable-tables card-body p-0">
       <table id="clientsTable" class="table mb-0 table-hover">
-      <thead>
+      <thead class="table-light">
         <tr>
         <th>Name</th>
         <th>Address</th>
         <th>Phone</th>
         <th>Email</th>
         <th>Actions</th>
-
         </tr>
       </thead>
       <tbody>
@@ -148,29 +163,30 @@
         data-address="{{ $c->address }}" data-phone="{{ $c->phone }}" data-email="{{ $c->email }}">
         <i class="bi bi-pencil-square"></i>
         </button>
-
         <button class="btn btn-sm btn-danger delete-client" data-id="{{ $c->id }}">
         <i class="bi bi-trash"></i>
         </button>
       </td>
       </tr>
-
       @endforeach
       </tbody>
       </table>
     </div>
     </div>
 
+
+    <br>
     {{-- Vehicles Table --}}
     <div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card-header d-flex justify-content-between align-items-center sticky-top bg-white"
+      style="top: 0; z-index: 1020;">
       <span>Vehicles List</span>
       <input id="vehicleSearch" type="text" class="form-control form-control-sm" placeholder="Search vehicle..."
       style="width: 200px;">
     </div>
-    <div class="card-body p-0">
+    <div class="scrollable-tables card-body p-0">
       <table id="vehiclesTable" class="table mb-0 table-hover">
-      <thead>
+      <thead class="table-light">
         <tr>
         <th>Client</th>
         <th>Plate #</th>
@@ -181,7 +197,6 @@
         <th>Color</th>
         <th>Odometer</th>
         <th>Actions</th>
-
         </tr>
       </thead>
       <tbody>
@@ -200,91 +215,95 @@
         data-client_id="{{ $v->client_id }}" data-plate_number="{{ $v->plate_number }}"
         data-model="{{ $v->model }}" data-vin_chasis="{{ $v->vin_chasis }}"
         data-manufacturer="{{ $v->manufacturer }}" data-year="{{ $v->year }}" data-color="{{ $v->color }}"
-        data-odometer="{{ $v->odometer }}"><i class="bi bi-pencil-square"></i></button>
-        <button class="btn btn-sm btn-danger delete-vehicle" data-id="{{ $v->id }}"><i
-        class="bi bi-trash"></i></button>
+        data-odometer="{{ $v->odometer }}">
+        <i class="bi bi-pencil-square"></i>
+        </button>
+        <button class="btn btn-sm btn-danger delete-vehicle" data-id="{{ $v->id }}">
+        <i class="bi bi-trash"></i>
+        </button>
       </td>
-
-
-
       </tr>
       @endforeach
       </tbody>
       </table>
-      <!-- View Client Details Modal -->
-      <div class="modal fade" id="viewClientModal" tabindex="-1">
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-        <div class="modal-header border-0 pb-0">
-          <h5 class="modal-title fw-bold"><i class="bi bi-person-lines-fill me-2"></i> Client Details</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <div id="clientInfo"></div>
-          <h6 class="mt-4">Vehicles:</h6>
-          <ul id="clientVehicles" class="list-group list-group-flush"></ul>
-        </div>
-        </div>
-      </div>
-      </div>
+    </div>
+    </div>
 
-      <!-- Edit Client Modal -->
-      <div class="modal fade" id="editClientModal" tabindex="-1">
-      <div class="modal-dialog">
-        <form id="editClientForm" class="modal-content">
-        @csrf
-        <div class="modal-header border-0 pb-0">
-          <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i> Edit Client</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" name="id">
-          <input type="text" name="name" class="form-control mb-2" placeholder="Name" required>
-          <input type="text" name="address" class="form-control mb-2" placeholder="Address">
-          <input type="text" name="phone" class="form-control mb-2" placeholder="Phone">
-          <input type="email" name="email" class="form-control mb-2" placeholder="Email">
-        </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">Save Changes</button>
-        </div>
-        </form>
-      </div>
-      </div>
 
-      <!-- Edit Vehicle Modal -->
-      <div class="modal fade" id="editVehicleModal" tabindex="-1">
-      <div class="modal-dialog">
-        <form id="editVehicleForm" class="modal-content">
-        @csrf
-        <div class="modal-header">
-          <h5 class="modal-title">Edit Vehicle</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <input type="hidden" name="id">
-          <select name="client_id" class="form-select shadow-sm rounded">
-          <option value="">Select Client</option>
-          @foreach($clients as $c)
-        <option value="{{ $c->id }}">{{ $c->name }}</option>
+    <!-- View Client Details Modal -->
+    <div class="modal fade" id="viewClientModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold"><i class="bi bi-person-lines-fill me-2"></i> Client Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="clientInfo"></div>
+        <h6 class="mt-4">Vehicles:</h6>
+        <ul id="clientVehicles" class="list-group list-group-flush"></ul>
+      </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- Edit Client Modal -->
+    <div class="modal fade" id="editClientModal" tabindex="-1">
+    <div class="modal-dialog">
+      <form id="editClientForm" class="modal-content">
+      @csrf
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2"></i> Edit Client</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" name="id">
+        <input type="text" name="name" class="form-control mb-2" placeholder="Name" required>
+        <input type="text" name="address" class="form-control mb-2" placeholder="Address">
+        <input type="text" name="phone" class="form-control mb-2" placeholder="Phone">
+        <input type="email" name="email" class="form-control mb-2" placeholder="Email">
+      </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
+      </div>
+      </form>
+    </div>
+    </div>
+
+    <!-- Edit Vehicle Modal -->
+    <div class="modal fade" id="editVehicleModal" tabindex="-1">
+    <div class="modal-dialog">
+      <form id="editVehicleForm" class="modal-content">
+      @csrf
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Vehicle</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" name="id">
+        <select name="client_id" class="form-select shadow-sm rounded">
+        <option value="">Select Client</option>
+        @foreach($clients as $c)
+      <option value="{{ $c->id }}">{{ $c->name }}</option>
       @endforeach
-          </select>
-          <input type="text" name="plate_number" class="form-control mb-2" placeholder="Plate #" required>
-          <input type="text" name="model" class="form-control mb-2" placeholder="Model">
-          <input type="text" name="vin_chasis" class="form-control mb-2" placeholder="VIN/Chasis">
-          <input type="text" name="manufacturer" class="form-control mb-2" placeholder="Manufacturer">
-          <input type="text" name="year" class="form-control mb-2" placeholder="Year">
-          <input type="text" name="color" class="form-control mb-2" placeholder="Color">
-          <input type="text" name="odometer" class="form-control mb-2" placeholder="Odometer">
-        </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">Save Changes</button>
-        </div>
-        </form>
+        </select>
+        <input type="text" name="plate_number" class="form-control mb-2" placeholder="Plate #" required>
+        <input type="text" name="model" class="form-control mb-2" placeholder="Model">
+        <input type="text" name="vin_chasis" class="form-control mb-2" placeholder="VIN/Chasis">
+        <input type="text" name="manufacturer" class="form-control mb-2" placeholder="Manufacturer">
+        <input type="text" name="year" class="form-control mb-2" placeholder="Year">
+        <input type="text" name="color" class="form-control mb-2" placeholder="Color">
+        <input type="text" name="odometer" class="form-control mb-2" placeholder="Odometer">
       </div>
+      <div class="modal-footer">
+        <button type="submit" class="btn btn-primary">Save Changes</button>
       </div>
+      </form>
+    </div>
+    </div>
 
-    </div>
-    </div>
+  </div>
+  </div>
   </div>
 
   <script>
