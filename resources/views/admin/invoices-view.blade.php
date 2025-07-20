@@ -13,73 +13,254 @@
   $net_sales    = $total_sales - $invoice->total_discount;
 @endphp
 
-<style>
-  @media print {
-    body * { visibility: hidden!important; }
-    #invoice-print, #invoice-print * { visibility: visible!important; }
-    #invoice-print {
-      position: absolute; top:0; left:50%;
-      transform: translateX(-50%);
-      width:100vw; height:100vh; margin:0; padding:0;
-      background:white!important; overflow:hidden;
+
+  <style>
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #invoice-print, #invoice-print * {
+    visibility: visible !important;
+  }
+  #invoice-print {
+    width: 210mm;           /* A4 full width */
+    min-height: 297mm;
+    margin: 0;
+    background: white !important;
+    box-sizing: border-box;
+    overflow: visible;
+    padding: 0;
+  }
+  .invoice-main,
+  .invoice-header-bar,
+  .company-info,
+  .details-section,
+  .invoice-table,
+  .labor-material-table,
+  .job-table,
+  .totals-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    box-sizing: border-box;
+  }
+  .no-print, .no-print * {
+    display: none !important;
+  }
+  @page {
+    margin: 0;
+    size: A4;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+  .invoice-header-bar,
+  .stripe-bar .stripe,
+  .details-table .label,
+  .invoice-table th,
+  .invoice-table tfoot tr td,
+  .labor-material-table th,
+  .labor-material-table tfoot td,
+  .job-table th,
+  .job-table tfoot td {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
     }
-    .no-print, .no-print * { display:none!important; }
-    @page { margin:0; size:A4; }
-    html, body { margin:0; padding:0; width:100%; height:100%; overflow:visible; }
-    /* preserve your print-color-adjust rules here... */
-  }
 
-  .invoice-main { border:1px solid #eee; background:#fff; max-width:900px; margin:0 auto; font-size:15px; overflow:hidden; }
-  .invoice-header-bar {
-    background: #FFD71A; display:flex; justify-content:space-between; align-items:center;
-    height:100px; padding:0 24px;
-  }
-  .invoice-header-bar .logo { max-height:250px; height:auto; }
-  .invoice-header-bar h1 { font-size:2rem; margin:0; font-weight:bold; }
-  .stripe-bar { display:flex; height:8px; }
-  .stripe { flex:1; }
-  .stripe.red   { background:#E40000; }
-  .stripe.green { background:#008000; }
-  .stripe.black { background:#000; }
-  .company-info { padding:16px 24px; font-family:Arial,sans-serif; }
-  .company-info h2 { margin:0; font-size:1.5rem; font-weight:bold; }
-  .company-info em { display:block; margin-bottom:8px; font-style:italic; }
-  .company-info p { margin:2px 0; line-height:1.3; }
-  .details-section { display:grid; grid-template-columns:2fr 1fr; gap:16px; padding:0 20px 20px; }
-  .details-table, .right-details-table { width:100%; border-collapse:collapse; }
-  .details-table td, .right-details-table td { padding:4px 10px; border:1px solid #c5c5c5; background:#f9f9f9; font-size:0.8rem; }
-  .details-table .label { background:#FFD71A; font-weight:bold; text-transform:uppercase; width:35%; }
-  .right-details-table td:first-child { background:#FFD71A; text-align:left; font-weight:bold; }
-  .right-details-table td:last-child { text-align:right; }
-  .right-details-table .invoice-no { color:#E40000; font-size:0.8rem; }
+    .invoice-main {
+    border: 1px solid #eee;
+    background: #fff;
+    max-width: 900px;
+    margin: 0 auto;
+    font-size: 15px;
+    overflow: hidden;
+    }
 
-  .invoice-table, .labor-material-table, .job-table, .totals-table {
-    width:95%; margin:20px auto 0; border-collapse:collapse;
-  }
-  .invoice-table th, .invoice-table td,
-  .labor-material-table th, .labor-material-table td,
-  .job-table th, .job-table td {
-    border:1px solid #ccc; padding:4px; font-size:0.8rem;
-  }
-  .invoice-table th, .labor-material-table th, .job-table th {
-    background:#FFD71A; font-weight:bold; text-align:left;
-  }
-  .invoice-table th:nth-child(3), .invoice-table td:nth-child(3),
-  .invoice-table th:nth-child(4), .invoice-table td:nth-child(4),
-  .labor-material-table th:nth-child(3), .labor-material-table td:nth-child(3),
-  .labor-material-table th:nth-child(4), .labor-material-table td:nth-child(4),
-  .job-table th:nth-child(3), .job-table td:nth-child(3),
-  .job-table th:nth-child(4), .job-table td:nth-child(4) {
-    text-align:right!important;
-  }
-  .labor-material-table tfoot td, .job-table tfoot td {
-    background:#FFD71A; font-weight:bold;
-  }
-  .totals-table td { padding:4px 8px; font-size:0.8rem; }
-  .totals-table td:first-child { text-align:left; }
-  .totals-table td:last-child  { text-align:right; }
-  .signature { text-align:center; margin-top:10px; font-weight:bold; }
-</style>
+    .invoice-header-bar {
+    background: #FFD71A;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 100px;
+    /* Set a fixed height */
+    padding: 0 24px;
+    /* Remove top/bottom padding */
+    overflow: hidden;
+    /* Cut off overflow (if any) */
+    }
+
+    .invoice-header-bar .logo {
+    max-height: 250px;
+    height: auto;
+    }
+
+    .invoice-header-bar h1 {
+    font-size: 2rem;
+    margin: 0;
+    font-weight: bold;
+    }
+
+    .stripe-bar {
+    display: flex;
+    height: 8px;
+    }
+
+    .stripe {
+    flex: 1;
+    }
+
+    .stripe.red {
+    background: #E40000;
+    }
+
+    .stripe.green {
+    background: #008000;
+    }
+
+    .stripe.black {
+    background: #000;
+    }
+
+    .company-info {
+    padding: 16px 24px;
+    font-family: Arial, sans-serif;
+    }
+
+    .company-info h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: bold;
+    }
+
+    .company-info em {
+    display: block;
+    margin-bottom: 8px;
+    font-style: italic;
+    }
+
+    .company-info p {
+    margin: 2px 0;
+    line-height: 1.3;
+    }
+
+    .details-section {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    padding: 0 20px 20px;
+    }
+
+    .details-table,
+    .right-details-table {
+    width: 100%;
+    border-collapse: collapse;
+    }
+
+    .details-table td,
+    .right-details-table td {
+    padding: 4px 10px;
+    border: 1px solid #c5c5c5;
+    background: #f9f9f9;
+    font-size: 0.8rem;
+    }
+
+    .details-table .label {
+    background: #FFD71A;
+    font-weight: bold;
+    text-transform: uppercase;
+    width: 35%;
+    }
+
+    .right-details-table td:first-child {
+    background: #FFD71A;
+    text-align: left;
+    font-weight: bold;
+    }
+
+    .right-details-table td:last-child {
+    text-align: right;
+    }
+
+    .right-details-table .invoice-no {
+    color: #E40000;
+    font-size: 0.8rem;
+    }
+
+    /* Tables */
+    .invoice-table,
+    .labor-material-table,
+    .job-table,
+    .totals-table {
+    width: 95%;
+    margin: 20px auto 0;
+    border-collapse: collapse;
+    }
+
+    .invoice-table th,
+    .invoice-table td,
+    .labor-material-table th,
+    .labor-material-table td,
+    .job-table th,
+    .job-table td {
+    border: 1px solid #ccc;
+    padding: 4px;
+    font-size: 0.8rem;
+    }
+
+    .invoice-table th,
+    .labor-material-table th,
+    .job-table th {
+    background: #FFD71A;
+    font-weight: bold;
+    text-align: left;
+    }
+
+    .invoice-table th:nth-child(3),
+    .invoice-table td:nth-child(3),
+    .invoice-table th:nth-child(4),
+    .invoice-table td:nth-child(4),
+    .labor-material-table th:nth-child(3),
+    .labor-material-table td:nth-child(3),
+    .labor-material-table th:nth-child(4),
+    .labor-material-table td:nth-child(4),
+    .job-table th:nth-child(3),
+    .job-table td:nth-child(3),
+    .job-table th:nth-child(4),
+    .job-table td:nth-child(4) {
+    text-align: right !important;
+    }
+
+    .labor-material-table tfoot td,
+    .job-table tfoot td {
+    background: #FFD71A;
+    font-weight: bold;
+    }
+
+    .totals-table td {
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    }
+
+    .totals-table td:first-child {
+    text-align: left;
+    }
+
+    .totals-table td:last-child {
+    text-align: right;
+    }
+
+    .signature {
+    text-align: center;
+    margin-top: 10px;
+    font-weight: bold;
+    }
+  </style>
 
 <div class="container mt-4">
   <div class="no-print mb-2">

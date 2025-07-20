@@ -36,9 +36,9 @@
           <col style="width:12%">
           <col style="width:20%">
           <col style="width:15%">
-          <col style="width:12%">
-          <col style="width:12%">
-          <col style="width:12%">
+          <col style="width:11%">
+          <col style="width:11%">
+          <col style="width:11%">
         </colgroup>
         <thead class="table-light text-nowrap">
           <tr>
@@ -61,8 +61,13 @@
               <td>{{ $invoice->client->name ?? $invoice->customer_name }}</td>
               <td>{{ $invoice->vehicle->plate_number ?? $invoice->vehicle_name }}</td>
               <td class="text-end">₱{{ number_format($invoice->subtotal, 2) }}</td>
-              {{-- Use invoice->total_discount directly --}}
-              <td class="text-end text-danger">₱{{ number_format($invoice->total_discount, 2) }}</td>
+              <td class="text-end text-danger">
+                ₱{{ number_format($invoice->combined_discount, 2) }}
+                <br>
+                <small class="text-muted">
+                  (₱{{ number_format($invoice->item_discount, 2) }} + ₱{{ number_format($invoice->total_discount, 2) }})
+                </small>
+              </td>
               <td class="text-end">₱{{ number_format($invoice->grand_total, 2) }}</td>
             </tr>
           @endforeach
@@ -75,7 +80,6 @@
                 Discount on {{ $row['date'] }}:
               </td>
               <td colspan="2" class="text-end text-danger">
-                {{-- Row discount is sum of total_discount --}}
                 ₱{{ number_format($row['discount'], 2) }}
               </td>
             </tr>
@@ -83,7 +87,6 @@
           <tr>
             <td colspan="6" class="text-end fw-bold">Grand Total Discount:</td>
             <td colspan="2" class="text-end text-danger">
-              {{-- totalDiscount from controller --}}
               ₱{{ number_format($totalDiscount, 2) }}
             </td>
           </tr>

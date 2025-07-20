@@ -21,23 +21,17 @@ class GrossSalesReportController extends Controller
 
         $data = $this->generateReportData($startDate, $endDate);
 
-        $sales         = $data['sales'];
-        $arCollections = $data['arCollections'];
-        $expenses      = $data['expenses'];
-        $cashDeposits  = $data['cashDeposits'];
-
-        // build list of all dates
         $dates = collect()
-            ->merge($sales->pluck('date'))
-            ->merge($arCollections->pluck('date')->map(fn($d) => Carbon::parse($d)->format('Y-m-d')))
-            ->merge($expenses->pluck('date')->map(fn($d)=> Carbon::parse($d)->format('Y-m-d')))
-            ->merge($cashDeposits->pluck('date')->map(fn($d)=> Carbon::parse($d)->format('Y-m-d')))
+            ->merge($data['sales']->pluck('date'))
+            ->merge($data['arCollections']->pluck('date')->map(fn($d) => Carbon::parse($d)->format('Y-m-d')))
+            ->merge($data['expenses']->pluck('date')->map(fn($d)=> Carbon::parse($d)->format('Y-m-d')))
+            ->merge($data['cashDeposits']->pluck('date')->map(fn($d)=> Carbon::parse($d)->format('Y-m-d')))
             ->unique()
             ->sort()
             ->values();
 
         $report = [];
-        $grand  = [
+        $grand = [
             'sales'     => 0,
             'ar'        => 0,
             'expenses'  => 0,
@@ -47,25 +41,21 @@ class GrossSalesReportController extends Controller
         ];
 
         foreach ($dates as $date) {
-            // filter each type for this date
-            $salesForDay    = $sales->filter(fn($s)  => $s['date'] === $date);
-            $arForDay       = $arCollections->filter(fn($ar)=> Carbon::parse($ar->date)->format('Y-m-d') === $date);
-            $expensesForDay = $expenses->filter(fn($ex)=> Carbon::parse($ex->date)->format('Y-m-d') === $date);
-            $depositsForDay = $cashDeposits->filter(fn($d)=> Carbon::parse($d->date)->format('Y-m-d') === $date);
+            $salesForDay    = $data['sales']->filter(fn($s)  => $s['date'] === $date);
+            $arForDay       = $data['arCollections']->filter(fn($ar)=> Carbon::parse($ar->date)->format('Y-m-d') === $date);
+            $expensesForDay = $data['expenses']->filter(fn($ex)=> Carbon::parse($ex->date)->format('Y-m-d') === $date);
+            $depositsForDay = $data['cashDeposits']->filter(fn($d)=> Carbon::parse($d->date)->format('Y-m-d') === $date);
 
-            // totals
-            $totalSales    = $salesForDay->sum('amount');
-            $totalAR       = $arForDay->sum('amount');
-            $totalExpenses = $expensesForDay->sum('amount');
-            $totalDeposits = $depositsForDay->sum('amount');
-            // sum all invoice‐level discounts for this day
-            $totalDiscounts = $salesForDay->sum('discount');
-            // gross = (sales + AR) - (expenses + deposits) - discounts
-            $grossTotal    = ($totalSales + $totalAR)
-                           - ($totalExpenses + $totalDeposits)
-                           - $totalDiscounts;
+            $totalSales     = $salesForDay->sum('line_total');
+            $totalAR        = $arForDay->sum('amount');
+            $totalExpenses  = $expensesForDay->sum('amount');
+            $totalDeposits  = $depositsForDay->sum('amount');
+            $totalDiscounts = $salesForDay->sum(fn($s) => ($s['discount_value'] ?? 0) + ($s['invoice_discount'] ?? 0));
 
-            // accumulate grand
+            $grossTotal = ($totalSales + $totalAR)
+                        - ($totalExpenses + $totalDeposits)
+                        - $totalDiscounts;
+
             $grand['sales']     += $totalSales;
             $grand['ar']        += $totalAR;
             $grand['expenses']  += $totalExpenses;
@@ -103,34 +93,34 @@ class GrossSalesReportController extends Controller
 
         $data = $this->generateReportData($startDate, $endDate);
 
-        $allItems = collect();
+        $rows = collect();
 
-        // ── Sales rows ───────────────────────────────
-        foreach ($data['sales'] as $sale) {
-            $allItems->push([
-                'date'                 => $sale['date'],
-                'invoice_no'           => $sale['invoice_no'],
-                'customer'             => $sale['customer'],
-                'vehicle_manufacturer' => $sale['vehicle_manufacturer'] ?? '',
-                'vehicle_model'        => $sale['vehicle_model']        ?? '',
-                'vehicle_year'         => $sale['vehicle_year']         ?? '',
-                'vehicle_plate'        => $sale['vehicle_plate']        ?? '',
-                'description'          => $sale['service'],
-                'quantity'             => $sale['quantity'],
-                'amount'               => $sale['amount'],
-                'discount'             => $sale['discount'],
-                'payment_type'         => $sale['payment_type'],
-                'payment'              => $sale['payment'],
-                'remarks'              => $sale['remarks'],
+        foreach ($data['sales'] as $s) {
+            $rows->push([
+                'date'                 => $s['date'],
+                'invoice_no'           => $s['invoice_no'],
+                'customer'             => $s['customer'],
+                'vehicle_manufacturer' => $s['vehicle_manufacturer'],
+                'vehicle_model'        => $s['vehicle_model'],
+                'vehicle_year'         => $s['vehicle_year'],
+                'vehicle_plate'        => $s['vehicle_plate'],
+                'description'          => $s['service'],
+                'quantity'             => $s['quantity'],
+                'acquisition_price'    => $s['acquisition_price'],
+                'selling_price'        => $s['original_price'],
+                'discount'             => ($s['discount_value'] ?? 0) + ($s['invoice_discount'] ?? 0),
+                'line_total'           => $s['line_total'],
+                'amount'               => $s['line_total'],
+                'remarks'              => $s['remarks'],
+                'payment'              => $s['payment'],
+                'payment_type'         => $s['payment_type'],
                 'type'                 => 'Sales',
             ]);
         }
 
-        // ── A/R Collections ──────────────────────────
         foreach ($data['arCollections'] as $ar) {
-            $allItems->push([
+            $rows->push([
                 'date'        => Carbon::parse($ar->date)->format('Y-m-d'),
-                'invoice_no'  => null,
                 'customer'    => 'A/R Collections',
                 'description' => $ar->description ?? '-',
                 'quantity'    => '',
@@ -139,11 +129,9 @@ class GrossSalesReportController extends Controller
             ]);
         }
 
-        // ── Expenses ─────────────────────────────────
         foreach ($data['expenses'] as $ex) {
-            $allItems->push([
+            $rows->push([
                 'date'        => Carbon::parse($ex->date)->format('Y-m-d'),
-                'invoice_no'  => null,
                 'customer'    => 'Expenses',
                 'description' => $ex->title ?? '-',
                 'quantity'    => '',
@@ -152,11 +140,9 @@ class GrossSalesReportController extends Controller
             ]);
         }
 
-        // ── Cash Deposits ────────────────────────────
         foreach ($data['cashDeposits'] as $dep) {
-            $allItems->push([
+            $rows->push([
                 'date'        => Carbon::parse($dep->date)->format('Y-m-d'),
-                'invoice_no'  => null,
                 'customer'    => 'Cash Deposits',
                 'description' => $dep->description ?? '-',
                 'quantity'    => '',
@@ -165,19 +151,16 @@ class GrossSalesReportController extends Controller
             ]);
         }
 
-        return Excel::download(
-            new GrossSalesExport($allItems),
-            'gross_sales_report_'.$startDate.'_to_'.$endDate.'.xlsx'
-        );
+        return Excel::download(new GrossSalesExport($rows), 'gross_sales_' . $startDate . '_to_' . $endDate . '.xlsx');
     }
 
     protected function generateReportData($startDate, $endDate)
     {
-        $invoices = Invoice::with(['items.part', 'client', 'jobs'])
+        $invoices = Invoice::with(['items.part', 'client', 'vehicle', 'jobs'])
             ->where('status', 'paid')
             ->whereBetween('created_at', [
                 Carbon::parse($startDate)->startOfDay(),
-                Carbon::parse($endDate)  ->endOfDay(),
+                Carbon::parse($endDate)->endOfDay(),
             ])
             ->orderBy('created_at')
             ->get();
@@ -187,55 +170,59 @@ class GrossSalesReportController extends Controller
         foreach ($invoices as $invoice) {
             $customer = $invoice->client->name ?? $invoice->customer_name ?? '-';
 
-            // line‐items
             foreach ($invoice->items as $item) {
+                $acqPrice = $item->manual_acquisition_price
+                           ?? ($item->part->acquisition_price ?? 0);
+
                 $sales->push([
                     'invoice_no'           => $invoice->invoice_no,
                     'date'                 => $invoice->created_at->format('Y-m-d'),
                     'customer'             => $customer,
                     'vehicle_manufacturer' => $invoice->vehicle?->manufacturer ?? '',
-                    'vehicle_model'        => $invoice->vehicle?->model        ?? '',
-                    'vehicle_year'         => $invoice->vehicle?->year         ?? '',
+                    'vehicle_model'        => $invoice->vehicle?->model ?? '',
+                    'vehicle_year'         => $invoice->vehicle?->year ?? '',
                     'vehicle_plate'        => $invoice->vehicle?->plate_number ?? '',
-                    'service'              => $item->manual_part_name
-                                              ?? ($item->part->item_name ?? 'Service/Labor'),
+                    'service'              => $item->manual_part_name ?? ($item->part->item_name ?? 'Part'),
                     'quantity'             => $item->quantity,
-                    'amount'               => $item->line_total,
+                    'acquisition_price'    => $acqPrice,
+                    'original_price'       => $item->original_price ?? 0,
+                    'discount_value'       => $item->discount_value ?? 0,
+                    'invoice_discount'     => $invoice->total_discount ?? 0,
+                    'line_total'           => $item->line_total ?? 0,
                     'remarks'              => $invoice->remarks ?? '',
-                    // newly added:
-                    'payment_type'         => $invoice->payment_type,
-                    'discount'             => $invoice->total_discount,
-                    'payment'              => $invoice->grand_total,
+                    'payment'              => $invoice->grand_total ?? 0,
+                    'payment_type'         => $invoice->payment_type ?? 'cash',
                 ]);
             }
 
-            // jobs
             foreach ($invoice->jobs as $job) {
                 $sales->push([
                     'invoice_no'           => $invoice->invoice_no,
                     'date'                 => $invoice->created_at->format('Y-m-d'),
                     'customer'             => $customer,
                     'vehicle_manufacturer' => $invoice->vehicle?->manufacturer ?? '',
-                    'vehicle_model'        => $invoice->vehicle?->model        ?? '',
-                    'vehicle_year'         => $invoice->vehicle?->year         ?? '',
+                    'vehicle_model'        => $invoice->vehicle?->model ?? '',
+                    'vehicle_year'         => $invoice->vehicle?->year ?? '',
                     'vehicle_plate'        => $invoice->vehicle?->plate_number ?? '',
                     'service'              => $job->job_description ?? 'Labor',
                     'quantity'             => 1,
-                    'amount'               => $job->total ?? 0,
+                    'acquisition_price'    => 0,
+                    'original_price'       => $job->total ?? 0,
+                    'discount_value'       => 0,
+                    'invoice_discount'     => $invoice->total_discount ?? 0,
+                    'line_total'           => $job->total ?? 0,
                     'remarks'              => 'Labor',
-                    // newly added:
-                    'payment_type'         => $invoice->payment_type,
-                    'discount'             => $invoice->total_discount,
-                    'payment'              => $invoice->grand_total,
+                    'payment'              => $invoice->grand_total ?? 0,
+                    'payment_type'         => $invoice->payment_type ?? 'cash',
                 ]);
             }
         }
 
         return [
             'sales'         => $sales,
-            'arCollections' => ARCollection::whereBetween('date',   [$startDate, $endDate])->get(),
-            'expenses'      => Expense::whereBetween('date',       [$startDate, $endDate])->get(),
-            'cashDeposits'  => CashDeposit::whereBetween('date',   [$startDate, $endDate])->get(),
+            'arCollections' => ARCollection::whereBetween('date', [$startDate, $endDate])->get(),
+            'expenses'      => Expense::whereBetween('date', [$startDate, $endDate])->get(),
+            'cashDeposits'  => CashDeposit::whereBetween('date', [$startDate, $endDate])->get(),
         ];
     }
 }

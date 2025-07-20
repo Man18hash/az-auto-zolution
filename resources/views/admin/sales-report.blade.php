@@ -2,15 +2,16 @@
 @section('title','Sales Report')
 
 @section('content')
-<!--<div class="col-12 col-md-auto mb-3">
-  <a href="{{ route('admin.sales-report.export', ['start_date'=>$startDate,'end_date'=>$endDate]) }}"
-     class="btn btn-success px-4 fw-bold" target="_blank">
-     <i class="fas fa-file-excel me-1"></i> Export to Excel 
-  </a>
-</div>-->
-
 <div class="container-fluid px-2 px-md-4">
   <h2 class="mb-4 fw-bold">Sales Report</h2> 
+
+  {{-- Export Button --}}
+  <div class="mb-3">
+    <a href="{{ route('admin.sales-report.export', ['start_date'=>$startDate,'end_date'=>$endDate]) }}"
+       class="btn btn-success px-4 fw-bold" target="_blank">
+       <i class="fas fa-file-excel me-1"></i> Export to Excel 
+    </a>
+  </div>
 
   {{-- Filter Form --}}
   <form method="GET" action="{{ route('admin.sales-report') }}"
@@ -36,7 +37,7 @@
     $byDate = collect($allItems)->groupBy('date');
   @endphp
 
-  {{-- Gross totals + daily floating cards --}}
+  {{-- Gross totals + daily summary cards --}}
   <div class="d-flex flex-wrap gap-4 mb-5">
     <div class="bg-info bg-opacity-10 border border-info rounded-3 p-3 shadow-sm">
       <h5 class="text-info fw-bold mb-3">
@@ -53,15 +54,18 @@
 
     @foreach($byDate as $date => $items)
       @php
-        $daySales    = collect($items)->sum('line_total');
-        $dayCost     = collect($items)
-                          ->sum(fn($i)=>($i['acquisition_price'] ?? 0)*$i['quantity']);
-        $dayInvs     = $invoices->filter(fn($inv)=>$inv->created_at->format('Y-m-d')===$date);
-        $dayCash     = $dayInvs->where('payment_type','cash')
-                          ->sum(fn($inv)=>$inv->items->sum('line_total')+$inv->jobs->sum('total'));
-        $dayNonCash  = $daySales - $dayCash;
-        $dayDiscount = $dayInvs->sum('total_discount');
-        $dayProfit   = $daySales - $dayCost - $dayDiscount;
+        $daySales       = collect($items)->sum('line_total');
+        $dayCost        = collect($items)
+                             ->sum(fn($i)=>(($i['acquisition_price'] ?? 0) * $i['quantity']));
+        $dayInvs        = $invoices
+                             ->filter(fn($inv)=>$inv->created_at->format('Y-m-d') === $date);
+        $dayInvoiceDisc = $dayInvs->sum('total_discount');
+        $dayItemDisc    = collect($items)->sum('discount_value');
+        $dayDiscount    = $dayInvoiceDisc + $dayItemDisc;
+        $dayCash        = $dayInvs->where('payment_type','cash')
+                             ->sum(fn($inv)=>$inv->items->sum('line_total') + $inv->jobs->sum('total'));
+        $dayNonCash     = $daySales - $dayCash;
+        $dayProfit      = $daySales - $dayCost - $dayDiscount;
       @endphp
 
       <div class="bg-warning bg-opacity-10 border border-warning rounded-3 p-3 shadow-sm mb-2">
@@ -69,12 +73,12 @@
           <i class="fas fa-calendar-alt"></i>
           {{ \Carbon\Carbon::parse($date)->format('F d, Y') }}
         </div>
-        <div><b>Sales:</b>      ₱{{ number_format($daySales,   2) }}</div>
-        <div><b>Cost:</b>       ₱{{ number_format($dayCost,    2) }}</div>
-        <div><b>Cash Sales:</b> ₱{{ number_format($dayCash,    2) }}</div>
-        <div><b>Non-Cash:</b>   ₱{{ number_format($dayNonCash,2) }}</div>
-        <div><b>Discount:</b>   ₱{{ number_format($dayDiscount,2) }}</div>
-        <div><b>Profit:</b>     ₱{{ number_format($dayProfit,  2) }}</div>
+        <div><b>Sales:</b>    ₱{{ number_format($daySales,    2) }}</div>
+        <div><b>Cost:</b>     ₱{{ number_format($dayCost,     2) }}</div>
+        <div><b>Cash:</b>     ₱{{ number_format($dayCash,     2) }}</div>
+        <div><b>Non-Cash:</b> ₱{{ number_format($dayNonCash, 2) }}</div>
+        <div><b>Discount:</b> ₱{{ number_format($dayDiscount, 2) }}</div>
+        <div><b>Profit:</b>   ₱{{ number_format($dayProfit,   2) }}</div>
       </div>
     @endforeach
   </div>
@@ -95,6 +99,7 @@
             <th>Qty</th>
             <th>Acq. Price</th>
             <th>Sell Price</th>
+            <th>Discount</th>
             <th>Line Total</th>
             <th>Remarks</th>
           </tr>
@@ -104,24 +109,19 @@
 
           @foreach($invoiceGroups as $invId => $rows)
             @php
-              $first        = $rows->first();
-              $invNo        = $first['invoice_no'];
-              $customer     = $first['customer_name'];
-              $vehicleInfo  = "{$first['vehicle_manufacturer']} {$first['vehicle_model']} ({$first['vehicle_plate']}) {$first['vehicle_year']}";
-              $groupTotal   = collect($rows)->sum('line_total');
-              $groupInvs    = $invoices->where('id',$invId);
-              $groupCash    = $groupInvs->where('payment_type','cash')
-                                ->sum(fn($inv)=>$inv->items->sum('line_total')+$inv->jobs->sum('total'));
-              $groupNonCash = $groupTotal - $groupCash;
-              $groupDiscount= $groupInvs->sum('total_discount');
-              $groupPayType = $groupInvs->pluck('payment_type')
-                                ->map(fn($t)=> $t==='cash'?'Cash':'Non-Cash')
-                                ->unique()->implode(', ');
+              $first            = $rows->first();
+              $invNo            = $first['invoice_no'];
+              $customer         = $first['customer_name'];
+              $vehicleInfo      = "{$first['vehicle_manufacturer']} {$first['vehicle_model']} ({$first['vehicle_plate']}) {$first['vehicle_year']}";
+              $groupInvs        = $invoices->where('id', $invId);
+              $groupLineSum     = collect($rows)->sum('line_total');
+              $groupInvoiceDisc = $groupInvs->sum('total_discount');
+              $clientTotal      = $groupLineSum - $groupInvoiceDisc;
             @endphp
 
-            {{-- Invoice Header with single Remarks cell --}}
+            {{-- Invoice Header --}}
             <tr class="table-secondary">
-              <td colspan="6">
+              <td colspan="7">
                 <strong>Invoice #{{ $invNo }} – {{ $customer }} – {{ $vehicleInfo }}</strong>
               </td>
               <td>
@@ -132,72 +132,91 @@
             {{-- Items/Jobs --}}
             @foreach($rows as $row)
               <tr>
-                <td></td> {{-- empty Customer & Vehicle col --}}
+                <td></td>
                 <td>{{ $row['item_name'] }}</td>
                 <td class="text-center">{{ $row['quantity'] }}</td>
                 <td class="text-end">₱{{ number_format($row['acquisition_price'],2) }}</td>
-                <td class="text-end">₱{{ number_format($row['selling_price'],   2) }}</td>
-                <td class="text-end">₱{{ number_format($row['line_total'],       2) }}</td>
-                <td></td> {{-- empty Remarks col --}}
+                <td class="text-end">₱{{ number_format($row['selling_price'],    2) }}</td>
+                <td class="text-end">₱{{ number_format($row['discount_value'],    2) }}</td>
+                <td class="text-end">₱{{ number_format($row['line_total'],        2) }}</td>
+                <td></td>
               </tr>
             @endforeach
 
-            {{-- Client Totals --}}
+            {{-- Invoice Totals --}}
             <tr>
               <td></td>
-              <td colspan="4" class="text-end fw-bold">Discount:</td>
-              <td class="text-end">₱{{ number_format($groupDiscount,2) }}</td><td></td>
+              <td colspan="5" class="text-end fw-bold">Discount (Invoice):</td>
+              <td class="text-end">₱{{ number_format($groupInvoiceDisc, 2) }}</td>
+              <td></td>
             </tr>
             <tr>
               <td></td>
-              <td colspan="4" class="text-end fw-bold">Client Total:</td>
-              <td class="text-primary text-end">₱{{ number_format($groupTotal,2) }}</td><td></td>
+              <td colspan="5" class="text-end fw-bold">Client Total:</td>
+              <td class="text-primary text-end">₱{{ number_format($clientTotal,    2) }}</td>
+              <td></td>
             </tr>
             <tr>
               <td></td>
-              <td colspan="4" class="text-end fw-bold">Payment Type:</td>
-              <td class="fw-semibold text-end">{{ $groupPayType }}</td><td></td>
+              <td colspan="5" class="text-end fw-bold">Payment Type:</td>
+              <td class="fw-semibold text-end">{{ $groupInvs->first()->payment_type === 'cash' ? 'Cash' : 'Non-Cash' }}</td>
+              <td></td>
             </tr>
             <tr style="border-top:2px solid #ddd;">
-              <td colspan="7"></td>
+              <td colspan="8"></td>
             </tr>
           @endforeach
         </tbody>
+
         @php
-          // Daily footer
-          $dayInvs     = $invoices->filter(fn($inv)=>$inv->created_at->format('Y-m-d')===$date);
-          $daySales    = collect($items)->sum('line_total');
-          $dayCost     = collect($items)->sum(fn($i)=>(($i['acquisition_price']??0)*$i['quantity']));
-          $dayCash     = $dayInvs->where('payment_type','cash')
-                            ->sum(fn($inv)=>$inv->items->sum('line_total')+$inv->jobs->sum('total'));
-          $dayNonCash  = $daySales - $dayCash;
-          $dayDiscount = $dayInvs->sum('total_discount');
-          $dayProfit   = $daySales - $dayCost - $dayDiscount;
+          $daySales       = collect($items)->sum('line_total');
+          $dayCost        = collect($items)->sum(fn($i)=>(($i['acquisition_price']??0)*$i['quantity']));
+          $dayInvoiceDisc = $invoices->filter(fn($inv)=>$inv->created_at->format('Y-m-d')===$date)
+                                     ->sum('total_discount');
+          $dayItemDisc    = collect($items)->sum('discount_value');
+          $dayDiscount    = $dayInvoiceDisc + $dayItemDisc;
+          $dayCash        = $invoices->filter(fn($inv)=>$inv->created_at->format('Y-m-d')===$date)
+                                     ->where('payment_type','cash')
+                                     ->sum(fn($inv)=>$inv->items->sum('line_total') + $inv->jobs->sum('total'));
+          $dayNonCash     = $daySales - $dayCash;
+          $dayProfit      = $daySales - $dayCost - $dayDiscount;
         @endphp
         <tfoot class="bg-light">
           <tr>
             <td colspan="5" class="text-end fw-bold">Total Sales:</td>
-            <td class="text-primary text-end">₱{{ number_format($daySales,   2) }}</td><td></td>
+            <td></td>
+            <td class="text-primary text-end">₱{{ number_format($daySales,  2) }}</td>
+            <td></td>
           </tr>
           <tr>
             <td colspan="5" class="text-end fw-bold">Total Cost:</td>
-            <td class="text-end">₱{{ number_format($dayCost,    2) }}</td><td></td>
+            <td></td>
+            <td class="text-end">₱{{ number_format($dayCost,   2) }}</td>
+            <td></td>
           </tr>
           <tr>
             <td colspan="5" class="text-end fw-bold">Cash Sales:</td>
-            <td class="text-end">₱{{ number_format($dayCash,    2) }}</td><td></td>
+            <td></td>
+            <td class="text-end">₱{{ number_format($dayCash,   2) }}</td>
+            <td></td>
           </tr>
           <tr>
             <td colspan="5" class="text-end fw-bold">Non-Cash Sales:</td>
-            <td class="text-end">₱{{ number_format($dayNonCash,2) }}</td><td></td>
+            <td></td>
+            <td class="text-end">₱{{ number_format($dayNonCash,2) }}</td>
+            <td></td>
           </tr>
           <tr>
             <td colspan="5" class="text-end fw-bold">Discount:</td>
-            <td class="text-end">₱{{ number_format($dayDiscount,2) }}</td><td></td>
+            <td></td>
+            <td class="text-end">₱{{ number_format($dayDiscount,2) }}</td>
+            <td></td>
           </tr>
           <tr>
             <td colspan="5" class="text-end fw-bold">Total Profit:</td>
-            <td class="text-success text-end">₱{{ number_format($dayProfit,2) }}</td><td></td>
+            <td></td>
+            <td class="text-success text-end">₱{{ number_format($dayProfit,2) }}</td>
+            <td></td>
           </tr>
         </tfoot>
       </table>

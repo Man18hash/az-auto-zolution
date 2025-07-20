@@ -158,6 +158,9 @@
       <a href="{{ route('admin.email-employee') }}"><i class="fas fa-envelope"></i> EMAIL/EMPLOYEE</a>
       <a href="{{ route('admin.invoices') }}"><i class="fas fa-file-invoice"></i> Invoices</a>
       <a href="{{ route('admin.inventory') }}"><i class="fas fa-warehouse"></i> Inventory</a>
+      <a href="{{ route('admin.material-summary') }}"><i class="fas fa-clipboard-list"></i> Material Summary</a>
+      <a href="{{ route('admin.labor-summary') }}"><i class="fas fa-users"></i> Labor Summary</a>
+      <a href="{{ route('admin.trends') }}"><i class="fas fa-chart-line"></i> Trends</a>
       <form method="POST" action="{{ route('logout') }}" class="logout-btn">
         @csrf
         <button type="submit" class="btn btn-danger w-100">

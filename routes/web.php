@@ -19,6 +19,9 @@ use App\Http\Controllers\Admin\DiscountReportController;
 use App\Http\Controllers\Cashier\HomeController;
 use App\Http\Controllers\Admin\IncomeAnalysisReportController;
 use App\Http\Controllers\Admin\EmailEmployeeController;
+use App\Http\Controllers\Admin\MaterialSummaryController;
+use App\Http\Controllers\Admin\LaborSummaryController;
+use App\Http\Controllers\Admin\TrendsController;
 
 use Illuminate\Support\Facades\Auth;
 
@@ -73,6 +76,24 @@ Route::middleware(['auth', 'role:admin'])
      ->name('admin.')
      ->group(function () {
 
+
+          // Labor Summary
+          Route::get('labor-summary', [LaborSummaryController::class, 'index'])
+               ->name('labor-summary');
+          Route::get('labor-summary/export/pdf', [LaborSummaryController::class, 'exportPDF'])
+               ->name('labor-summary.export');
+
+
+          // Material Summary
+          Route::get('material-summary', [MaterialSummaryController::class, 'index'])
+               ->name('material-summary');
+          Route::get('material-summary/export/pdf', [MaterialSummaryController::class, 'exportPDF'])
+               ->name('material-summary.export');
+
+
+          // Trends
+          Route::get('trends', [TrendsController::class, 'index'])
+                ->name('trends');
           // Admin Dashboard
           Route::view('home', 'admin.home')->name('home');
           Route::get('invoices', [\App\Http\Controllers\Admin\InvoiceHistoryController::class, 'index'])
