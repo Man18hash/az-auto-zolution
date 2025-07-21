@@ -128,7 +128,7 @@ class InvoiceController extends Controller
                 $original = $item['original_price'] ?? $item['price'] ?? $item['manual_selling_price'] ?? 0;
 
 
-                $discount = $item['discounted_price'] ?? 0;
+                $discount = $item['discount_value'] ?? 0;
                 $effective = $original - $discount;
                 $qty = $item['quantity'] ?? 0;
                 $lineTotal = $qty * $effective;
@@ -141,7 +141,8 @@ class InvoiceController extends Controller
                     'manual_selling_price' => $item['manual_selling_price'] ?? null,
                     'quantity' => $qty,
                     'original_price' => $original,
-                    'discounted_price' => $discount,
+                    'discount_value' => $discount,
+                    'discounted_price' => $lineTotal, // line_total is now stored as discounted_price
                     'line_total' => $lineTotal,
                 ]);
 
@@ -295,7 +296,7 @@ class InvoiceController extends Controller
                 $original = $item['original_price'] ?? $item['price'] ?? $item['manual_selling_price'] ?? 0;
 
 
-                $discount = $item['discounted_price'] ?? 0;
+                $discount = $item['discount_value'] ?? 0;
                 $effective = $original - $discount;
                 $qty = $item['quantity'] ?? 0;
                 $lineTotal = $qty * $effective;
@@ -308,7 +309,8 @@ class InvoiceController extends Controller
                     'manual_selling_price' => $item['manual_selling_price'] ?? null,
                     'quantity' => $qty,
                     'original_price' => $original,
-                    'discounted_price' => $discount,
+                    'discount_value' => $discount,
+                    'discounted_price' => $lineTotal, // line_total is now stored as discounted_price
                     'line_total' => $lineTotal,
                 ]);
 
