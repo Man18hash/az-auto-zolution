@@ -815,6 +815,7 @@
         quantity: item.quantity,
         original_price: item.original_price ?? 0,
         discounted_price: item.discounted_price ?? 0,
+        discount_value: item.discount_value ?? 0,
         acquisition_price: item.manual_acquisition_price ?? (item.part?.acquisition_price ?? 0),
         manual_part_name: item.manual_part_name,
         manual_serial_number: item.manual_serial_number,
