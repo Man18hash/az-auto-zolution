@@ -32,6 +32,11 @@
 .card-dashboard.gross      { border-left-color: #28a745; }
 .card-dashboard.income     { border-left-color: #6f42c1; }
 .card-dashboard.discount   { border-left-color: #fd7e14; }
+.card-dashboard.invoice    { border-left-color: #6c757d; }
+.card-dashboard.inventory  { border-left-color: #00bcd4; }
+.card-dashboard.material   { border-left-color: #795548; }
+.card-dashboard.labor      { border-left-color: #ff9800; }
+.card-dashboard.trends     { border-left-color: #17a2b8; }
 </style>
 
 <h2>Admin Dashboard Overview</h2>
@@ -64,5 +69,43 @@
         <div class="label">Discount Report</div>
         <a href="{{ route('admin.discount-report') }}" class="view-link">View All &rarr;</a>
     </div>
+
+    <!-- New Cards Below -->
+
+    <div class="card-dashboard invoice">
+        <div class="icon"><i class="fas fa-file-invoice" style="color:#6c757d"></i></div>
+        <div class="count">&nbsp;</div>
+        <div class="label">Invoices</div>
+        <a href="{{ route('admin.invoices') }}" class="view-link">View All &rarr;</a>
+    </div>
+
+    <div class="card-dashboard inventory">
+        <div class="icon"><i class="fas fa-warehouse" style="color:#00bcd4"></i></div>
+        <div class="count">&nbsp;</div>
+        <div class="label">Inventory</div>
+        <a href="{{ route('admin.inventory') }}" class="view-link">View All &rarr;</a>
+    </div>
+
+    <div class="card-dashboard material">
+        <div class="icon"><i class="fas fa-clipboard-list" style="color:#795548"></i></div>
+        <div class="count">&nbsp;</div>
+        <div class="label">Material Summary</div>
+        <a href="{{ route('admin.material-summary') }}" class="view-link">View All &rarr;</a>
+    </div>
+
+    <div class="card-dashboard labor">
+        <div class="icon"><i class="fas fa-users" style="color:#ff9800"></i></div>
+        <div class="count">&nbsp;</div>
+        <div class="label">Labor Summary</div>
+        <a href="{{ route('admin.labor-summary') }}" class="view-link">View All &rarr;</a>
+    </div>
+
+    <div class="card-dashboard trends">
+        <div class="icon"><i class="fas fa-chart-line" style="color:#17a2b8"></i></div>
+        <div class="count">&nbsp;</div>
+        <div class="label">Trends</div>
+        <a href="{{ route('admin.trends') }}" class="view-link">View All &rarr;</a>
+    </div>
+
 </div>
 @endsection

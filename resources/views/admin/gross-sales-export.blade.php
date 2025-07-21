@@ -2,7 +2,6 @@
   @php
     use Carbon\Carbon;
 
-    // 1) Build per-day blocks
     $byDate     = collect($allItems)->groupBy('date');
     $blocks     = [];
     $grandGross = 0;
@@ -12,22 +11,23 @@
       $invoices = $items->whereNotNull('invoice_no')->groupBy('invoice_no');
       $orphans  = $items->whereNull('invoice_no');
 
-      // compute day-totals
       $daySales = $invoices->flatten(1)
                     ->where(fn($r)=> strtolower($r['type'])==='sales')
                     ->sum(fn($r)=> floatval($r['amount'] ?? 0));
-      $dayAR    = $invoices->flatten(1)
-                    ->where(fn($r)=> strtolower($r['type'])==='a/r')
+      $dayAR = $invoices->flatten(1)
+                    ->where(fn($r)=> in_array(strtolower($r['type']), ['a/r','ar collections']))
+                    ->sum(fn($r)=> floatval($r['amount'] ?? 0))
+             + $orphans->where(fn($r)=> in_array(strtolower($r['type']), ['a/r','ar collections']))
                     ->sum(fn($r)=> floatval($r['amount'] ?? 0));
-      $dayExp   = $invoices->flatten(1)
+      $dayExp = $invoices->flatten(1)
                     ->where(fn($r)=> in_array(strtolower($r['type']), ['expense','expenses']))
                     ->sum(fn($r)=> floatval($r['amount'] ?? 0))
-                  + $orphans->where(fn($r)=> in_array(strtolower($r['type']), ['expense','expenses']))
+             + $orphans->where(fn($r)=> in_array(strtolower($r['type']), ['expense','expenses']))
                     ->sum(fn($r)=> floatval($r['amount'] ?? 0));
-      $dayDep   = $invoices->flatten(1)
+      $dayDep = $invoices->flatten(1)
                     ->where(fn($r)=> in_array(strtolower($r['type']), ['deposit','cash deposits']))
                     ->sum(fn($r)=> floatval($r['amount'] ?? 0))
-                  + $orphans->where(fn($r)=> in_array(strtolower($r['type']), ['deposit','cash deposits']))
+             + $orphans->where(fn($r)=> in_array(strtolower($r['type']), ['deposit','cash deposits']))
                     ->sum(fn($r)=> floatval($r['amount'] ?? 0));
       $dayDisc  = $invoices
                     ->map(fn($g)=> floatval($g->first()['discount'] ?? 0))
@@ -44,7 +44,6 @@
       ];
     }
 
-    // 2) Build HTML-rows per block, with mapping + suppression + blank rows
     $rowsPerBlock = [];
     $typeMap = [
       'sales'       => 'Labor',
@@ -91,13 +90,17 @@
 
           $rows[] = [
             '<td></td>',
-            '<td>'.($row['service']     ?? $row['description'] ?? '').'</td>',
+            '<td>'.($row['service'] ?? $row['description'] ?? '').'</td>',
             '<td class="text-center">'.($row['quantity']   ?? '').'</td>',
-            '<td>₱'.number_format(floatval($row['amount']   ?? 0),2).'</td>',
+            '<td>₱'.number_format(floatval($row['amount'] ?? 0),2).'</td>',
             $typeCell,
-            '<td>'.($row['remarks']     ?? '').'</td>',
+            '<td>'.($row['remarks'] ?? '').'</td>',
           ];
         }
+
+        // --- TWO BLANK ROWS BEFORE FOOTER (discount, client total, payment type) ---
+        $rows[] = ['<td colspan="6"></td>'];
+        $rows[] = ['<td colspan="6"></td>'];
 
         // invoice footer
         $rows[] = [
@@ -117,7 +120,12 @@
         ];
       }
 
-      // — orphan rows —
+      // — TWO BLANK ROWS BEFORE ORPHAN GROUP (Expenses, AR, Deposits) —
+      if (count($b['orphans']) > 0) {
+        $rows[] = ['<td colspan="6"></td>'];
+        $rows[] = ['<td colspan="6"></td>'];
+      }
+
       foreach ($b['orphans'] as $row) {
         $raw   = strtolower($row['type'] ?? '');
         $label = $typeMap[$raw] ?? '';
@@ -163,7 +171,6 @@
       $rowsPerBlock[$b['date']] = $rows;
     }
 
-    // 3) Compute max rows, and overall column count (with one-column gaps)
     $maxRows    = collect($rowsPerBlock)->map(fn($r)=>count($r))->max();
     $numBlocks  = count($blocks);
     $totalCols  = $numBlocks * 6 + ($numBlocks - 1);
@@ -212,7 +219,6 @@
       </tr>
     @endfor
 
-    {{-- Grand Gross Total across all days --}}
     <tr><td colspan="{{ $totalCols }}"></td></tr>
     <tr>
       <td colspan="{{ $totalCols - 1 }}" style="text-align:right;font-weight:bold;background:#bbb;color:#fff;">

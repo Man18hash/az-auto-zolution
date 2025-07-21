@@ -71,7 +71,7 @@ class IncomeAnalysisReportController extends Controller
             'Deposits' => array_fill(0, $count, 0),
         ];
 
-        // 4) Load data
+        // 4) Load data (with items for discount computation)
         $invoices = Invoice::with('items','jobs')
             ->where('status','paid')
             ->whereBetween('created_at', [$start, $end])
@@ -136,21 +136,27 @@ class IncomeAnalysisReportController extends Controller
                 : $arr;
         }
 
-        // 8) Discounts + payment split
-        $totalDiscount    = $invoices->sum('total_discount');
-        $cashPayments     = $invoices
+        // 8) Discounts (sum BOTH invoice-level and item-level discounts)
+        $totalInvoiceDiscount = $invoices->sum('total_discount');
+        $totalItemDiscount    = $invoices->sum(function($inv){
+            return $inv->items->sum('discount_value');
+        });
+        $totalDiscount = $totalInvoiceDiscount + $totalItemDiscount;
+
+        // 9) Payment split
+        $cashPayments = $invoices
             ->filter(fn($inv)=> $inv->payment_type==='cash')
             ->sum(fn($inv)=> $inv->items->sum('line_total') + $inv->jobs->sum('total'));
         $nonCashPayments  = $totals['Sales'] - $cashPayments;
 
         return view('admin.income-analysis-report', [
-            'periodType'     => $periodType,
-            'labels'         => $labels,
-            'series'         => $series,
-            'totals'         => $totals,
-            'totalDiscount'  => $totalDiscount,
-            'cashPayments'   => $cashPayments,
-            'nonCashPayments'=> $nonCashPayments,
+            'periodType'      => $periodType,
+            'labels'          => $labels,
+            'series'          => $series,
+            'totals'          => $totals,
+            'totalDiscount'   => $totalDiscount,
+            'cashPayments'    => $cashPayments,
+            'nonCashPayments' => $nonCashPayments,
         ]);
     }
 }

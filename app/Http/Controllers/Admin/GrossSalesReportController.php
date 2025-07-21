@@ -21,6 +21,7 @@ class GrossSalesReportController extends Controller
 
         $data = $this->generateReportData($startDate, $endDate);
 
+        // Merge all dates from all types for per-day breakdown
         $dates = collect()
             ->merge($data['sales']->pluck('date'))
             ->merge($data['arCollections']->pluck('date')->map(fn($d) => Carbon::parse($d)->format('Y-m-d')))
@@ -50,11 +51,12 @@ class GrossSalesReportController extends Controller
             $totalAR        = $arForDay->sum('amount');
             $totalExpenses  = $expensesForDay->sum('amount');
             $totalDeposits  = $depositsForDay->sum('amount');
+            // Sum ALL discounts from sales and jobs per invoice (avoid double counting)
             $totalDiscounts = $salesForDay->sum(fn($s) => ($s['discount_value'] ?? 0) + ($s['invoice_discount'] ?? 0));
 
+            // GROSS = SALES + AR - EXPENSES - DEPOSITS - DISCOUNTS
             $grossTotal = ($totalSales + $totalAR)
-                        - ($totalExpenses + $totalDeposits)
-                        - $totalDiscounts;
+                        - ($totalExpenses + $totalDeposits + $totalDiscounts);
 
             $grand['sales']     += $totalSales;
             $grand['ar']        += $totalAR;
@@ -154,6 +156,10 @@ class GrossSalesReportController extends Controller
         return Excel::download(new GrossSalesExport($rows), 'gross_sales_' . $startDate . '_to_' . $endDate . '.xlsx');
     }
 
+    /**
+     * Collects ALL data grouped by day: sales, AR, expenses, deposits.
+     * Sales includes both items and jobs, with per-invoice discounts only once.
+     */
     protected function generateReportData($startDate, $endDate)
     {
         $invoices = Invoice::with(['items.part', 'client', 'vehicle', 'jobs'])
@@ -169,6 +175,10 @@ class GrossSalesReportController extends Controller
 
         foreach ($invoices as $invoice) {
             $customer = $invoice->client->name ?? $invoice->customer_name ?? '-';
+
+            // Attach per-invoice discount ONCE per invoice, not per item/job!
+            $invoiceDiscount = $invoice->total_discount ?? 0;
+            $discountAdded = false;
 
             foreach ($invoice->items as $item) {
                 $acqPrice = $item->manual_acquisition_price
@@ -187,12 +197,16 @@ class GrossSalesReportController extends Controller
                     'acquisition_price'    => $acqPrice,
                     'original_price'       => $item->original_price ?? 0,
                     'discount_value'       => $item->discount_value ?? 0,
-                    'invoice_discount'     => $invoice->total_discount ?? 0,
+                    'invoice_discount'     => (!$discountAdded && $invoiceDiscount > 0) ? $invoiceDiscount : 0,
                     'line_total'           => $item->line_total ?? 0,
                     'remarks'              => $invoice->remarks ?? '',
                     'payment'              => $invoice->grand_total ?? 0,
                     'payment_type'         => $invoice->payment_type ?? 'cash',
                 ]);
+                // Make sure discount is counted only once
+                if (!$discountAdded && $invoiceDiscount > 0) {
+                    $discountAdded = true;
+                }
             }
 
             foreach ($invoice->jobs as $job) {
@@ -209,7 +223,7 @@ class GrossSalesReportController extends Controller
                     'acquisition_price'    => 0,
                     'original_price'       => $job->total ?? 0,
                     'discount_value'       => 0,
-                    'invoice_discount'     => $invoice->total_discount ?? 0,
+                    'invoice_discount'     => 0, // only on items, not jobs
                     'line_total'           => $job->total ?? 0,
                     'remarks'              => 'Labor',
                     'payment'              => $invoice->grand_total ?? 0,
