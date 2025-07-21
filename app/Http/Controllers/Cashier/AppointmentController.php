@@ -77,6 +77,9 @@ class AppointmentController extends Controller
             'note' => 'nullable|string',
         ], [
             'appointment_date.required' => 'Please pick an appointment date.',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string|max:255',
         ]);
 
         // Handle manual client creation
@@ -84,9 +87,22 @@ class AppointmentController extends Controller
         if (!$clientId && $request->customer_name) {
             $client = Client::create([
                 'name' => $request->customer_name,
+                'phone' => $request->phone,
+                'email' => $request->email,
+                'address' => $request->address,
             ]);
             $clientId = $client->id;
+        } elseif ($clientId) {
+            $client = Client::find($clientId);
+            if ($client) {
+                $client->update([
+                    'phone' => $request->phone,
+                    'email' => $request->email,
+                    'address' => $request->address,
+                ]);
+            }
         }
+
 
         // Handle vehicle logic
         $vehicleId = $request->vehicle_id;
@@ -195,6 +211,9 @@ class AppointmentController extends Controller
             'note' => 'nullable|string',
         ], [
             'appointment_date.required' => 'Please pick an appointment date.',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'address' => 'nullable|string|max:255',
         ]);
 
         // Handle manual client creation on update
@@ -202,9 +221,22 @@ class AppointmentController extends Controller
         if (!$clientId && $request->customer_name) {
             $client = Client::create([
                 'name' => $request->customer_name,
+                'phone' => $request->phone,
+                'email' => $request->email,
+                'address' => $request->address,
             ]);
             $clientId = $client->id;
+        } elseif ($clientId) {
+            $client = Client::find($clientId);
+            if ($client) {
+                $client->update([
+                    'phone' => $request->phone,
+                    'email' => $request->email,
+                    'address' => $request->address,
+                ]);
+            }
         }
+
 
         // Handle vehicle update logic
         $vehicleId = $request->vehicle_id;

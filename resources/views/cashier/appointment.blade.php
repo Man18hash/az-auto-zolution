@@ -164,7 +164,8 @@
         <select name="client_id" id="client_id" class="form-select">
           <option value="">Select client</option>
           @foreach($clients as $c)
-        <option value="{{ $c->id }}" {{ old('client_id', $invoice->client_id ?? '') == $c->id ? 'selected' : '' }}>
+        <option value="{{ $c->id }}" data-phone="{{ $c->phone }}" data-email="{{ $c->email }}"
+        data-address="{{ $c->address }}" {{ old('client_id', $invoice->client_id ?? '') == $c->id ? 'selected' : '' }}>
         {{ $c->name }}
         </option>
       @endforeach
@@ -175,6 +176,24 @@
         <label for="customer_name" class="form-label">Manual Customer</label>
         <input type="text" name="customer_name" id="customer_name" class="form-control"
           value="{{ old('customer_name', $invoice->customer_name ?? '') }}">
+        </div>
+
+        <div class="col-md-3">
+        <label for="phone" class="form-label">Phone</label>
+        <input type="text" name="phone" id="phone" class="form-control"
+          value="{{ old('phone', $invoice->client->phone ?? '') }}">
+        </div>
+
+        <div class="col-md-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="email" name="email" id="email" class="form-control"
+          value="{{ old('email', $invoice->client->email ?? '') }}">
+        </div>
+
+        <div class="col-md-6">
+        <label for="address" class="form-label">Address</label>
+        <input type="text" name="address" id="address" class="form-control"
+          value="{{ old('address', $invoice->client->address ?? '') }}">
         </div>
       </div>
       </div>
@@ -280,7 +299,7 @@
         <th>Note</th>
         <th>Source Type</th>
         <th>Appointment Date</th>
-        <th>Created</th>
+        <th>Phone</th>
         <th>Actions</th>
       </tr>
       </thead>
@@ -304,9 +323,10 @@
       </span>
       </td>
       <td>{{ $h->appointment_date ? \Carbon\Carbon::parse($h->appointment_date)->format('Y-m-d') : '-' }}</td>
-      <td>{{ $h->created_at->format('Y-m-d H:i') }}</td>
+      <td>{{ $h->client->phone ?? '-' }}</td>
+
       <td class="d-flex gap-1">
-      
+
       <a href="{{ route('cashier.appointment.edit', $h->id) }}"
         class="btn btn-sm btn-outline-primary">Edit</a>
       <form action="{{ route('cashier.appointment.update', $h->id) }}" method="POST"
@@ -357,12 +377,17 @@
     /// When a client is selected, fetch and populate vehicle options with data attributes
     $('#client_id').on('change', function () {
     const clientId = $(this).val();
+    const selectedClient = $(this).find(':selected');
+
+    // Autofill client contact info
+    $('#phone').val(selectedClient.data('phone') || '');
+    $('#email').val(selectedClient.data('email') || '');
+    $('#address').val(selectedClient.data('address') || '');
+
+    // Filter and populate vehicle dropdown
     const filteredVehicles = vehicles.filter(vehicle => vehicle.client_id == clientId);
 
-    // Clear and add default option
     $('#vehicle_id').empty().append(`<option value="">— walk-in or choose —</option>`);
-
-    // Append filtered vehicles as options with data attributes
     filteredVehicles.forEach(vehicle => {
       $('#vehicle_id').append(`
       <option value="${vehicle.id}"
@@ -376,12 +401,12 @@
     `);
     });
 
-    // Re-initialize select2 after appending options
     $('#vehicle_id').select2({
       placeholder: '-- search vehicle --',
       allowClear: true
     });
     });
+
 
     // VEHICLE DETAILS AUTOFILL
     $('#vehicle_id').on('change', function () {

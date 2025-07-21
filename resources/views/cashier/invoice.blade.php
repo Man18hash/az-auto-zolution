@@ -11,7 +11,7 @@
     $filteredPaid = $history->where('source_type', 'invoicing')
     ->where('created_at', '>=', now()->subHours(48))
     ->where('status', 'paid');
-    @endphp
+  @endphp
 
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <style>
@@ -370,6 +370,7 @@
       data-url="{{ route('cashier.invoice.edit', $h->id) }}" data-bs-toggle="tooltip" title="Edit Invoice">
       <i class="bi bi-pencil-square"></i>
       </button>
+      @if(in_array($h->service_status, ['in_progress', 'done']))
       <form action="{{ route('cashier.invoice.update', $h->id) }}" method="POST" class="d-inline">
       @csrf @method('PUT')
       <input type="hidden" name="status" value="paid">
@@ -378,6 +379,12 @@
       <i class="bi bi-check2-circle"></i>
       </button>
       </form>
+      @else
+      <button class="btn btn-sm btn-secondary" disabled title="Service must be In Progress or Done">
+      <i class="bi bi-check2-circle"></i>
+      </button>
+      @endif
+
       </div>
       </td>
       </tr>

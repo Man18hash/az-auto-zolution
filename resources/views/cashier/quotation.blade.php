@@ -381,7 +381,8 @@
 
   <script>
     $(function () {
-    const parts = @json($parts);
+    window.parts = @json($parts); // ✅ expose globally
+
     const technicians = @json($technicians);
     const clients = @json($clients);
     const vehicles = @json($vehicles);
@@ -400,32 +401,32 @@
     }
 
     $('#client_id').select2({
-  ajax: {
-    url: '{{ route("cashier.quotation.ajax.clients") }}',
-    dataType: 'json',
-    delay: 250,
-    data: function (params) {
-      return {
+      ajax: {
+      url: '{{ route("cashier.quotation.ajax.clients") }}',
+      dataType: 'json',
+      delay: 250,
+      data: function (params) {
+        return {
         q: params.term || '',
         page: params.page || 1
-      };
-    },
-    processResults: function (data, params) {
-      params.page = params.page || 1;
+        };
+      },
+      processResults: function (data, params) {
+        params.page = params.page || 1;
 
-      return {
+        return {
         results: data.results,
         pagination: {
           more: data.pagination.more
         }
-      };
-    },
-    cache: true
-  },
-  minimumInputLength: 0,
-  placeholder: '-- search client --',
-  allowClear: true
-});
+        };
+      },
+      cache: true
+      },
+      minimumInputLength: 0,
+      placeholder: '-- search client --',
+      allowClear: true
+    });
 
 
 
@@ -502,12 +503,14 @@
       { id: '', text: '-- search part --', price: 0, acquisition: 0 },
       ...parts.map(p => ({
         id: p.id,
-        text: `${p.item_name} - Stock: ${p.quantity}`,
+        text: `${p.item_name} (${p.part_number || 'N/A'}) - Stock: ${p.quantity}`,
+        search: `${p.item_name} ${p.part_number}`, // searchable content
         price: +p.selling,
         acquisition: +p.acquisition_price,
         disabled: p.quantity == 0
       }))
       ];
+
 
       const $partSelect = row.find('.part-select').select2({
       data: select2Data,
@@ -515,6 +518,17 @@
       allowClear: true,
       width: 'resolve',
       dropdownParent: $('#items-table'),
+      matcher: function (params, data) {
+        if ($.trim(params.term) === '') return data;
+
+        if (typeof data.search === 'undefined') return null;
+
+        if (data.search.toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
+        return data;
+        }
+
+        return null;
+      },
       templateResult: function (data) {
         if (!data.id) return data.text;
         if (data.disabled) {
@@ -523,6 +537,7 @@
         return data.text;
       }
       })
+
       .on('select2:select', e => {
         row.find('[name$="[original_price]"]').val(e.params.data.price.toFixed(2));
         row.find('[name$="[acquisition_price]"]').val(e.params.data.acquisition.toFixed(2));

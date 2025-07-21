@@ -17,7 +17,8 @@ class QuotationController extends Controller
     {
         $clients = Client::all();
         $vehicles = Vehicle::all();
-        $parts = Inventory::select('id', 'item_name', 'quantity', 'selling', 'acquisition_price')->get();
+        $parts = Inventory::select('id', 'item_name', 'part_number', 'quantity', 'selling', 'acquisition_price')->get();
+
         // Select quantity as the remaining stock
         $technicians = Technician::all();
 
@@ -68,38 +69,37 @@ class QuotationController extends Controller
         ]);
 
         // Vehicle logic: if vehicle_id given, update it; else, create new vehicle
+        // Create client if manual customer name is provided
+        $clientId = $request->client_id;
+        if (!$clientId && $request->customer_name) {
+            $client = Client::create([
+                'name' => $request->customer_name,
+                'phone' => $request->number,
+                'address' => $request->address,
+            ]);
+            $clientId = $client->id;
+        }
+
+        // Create vehicle if manual vehicle name is provided
         $vehicleId = $request->vehicle_id;
-        if ($vehicleId) {
-            $vehicle = Vehicle::find($vehicleId);
-            if ($vehicle) {
-                $vehicle->update([
-                    'plate_number' => $request->plate,
-                    'model' => $request->model,
-                    'year' => $request->year,
-                    'color' => $request->color,
-                    'odometer' => $request->odometer,
-                ]);
-            }
-        } else if ($request->plate || $request->model || $request->year || $request->color || $request->odometer) {
-            // Only create vehicle if any field is provided
+        if (!$vehicleId && $request->vehicle_name) {
             $vehicle = Vehicle::create([
+                'client_id' => $clientId, // link to newly created or existing client
                 'plate_number' => $request->plate,
                 'model' => $request->model,
                 'year' => $request->year,
                 'color' => $request->color,
                 'odometer' => $request->odometer,
-                'client_id' => $request->client_id, // can be null
             ]);
             $vehicleId = $vehicle->id;
-        } else {
-            $vehicleId = null;
         }
 
+
         $invoice = Invoice::create([
-            'client_id' => $request->client_id,
+            'client_id' => $clientId,
             'vehicle_id' => $vehicleId,
-            'customer_name' => $request->customer_name,
-            'vehicle_name' => $request->vehicle_name,
+            'customer_name' => null,
+            'vehicle_name' => null,
             'source_type' => 'quotation',
             'service_status' => 'pending',
             'status' => 'unpaid',
@@ -111,6 +111,7 @@ class QuotationController extends Controller
             'number' => $request->number,
             'address' => $request->address,
         ]);
+
 
         // Save items
         // Save items
@@ -202,38 +203,37 @@ class QuotationController extends Controller
         ]);
 
         // Vehicle logic: if vehicle_id given, update it; else, create new vehicle
+        // Create client if manual customer name is provided
+        $clientId = $request->client_id;
+        if (!$clientId && $request->customer_name) {
+            $client = Client::create([
+                'name' => $request->customer_name,
+                'phone' => $request->number,
+                'address' => $request->address,
+            ]);
+            $clientId = $client->id;
+        }
+
+        // Create vehicle if manual vehicle name is provided
         $vehicleId = $request->vehicle_id;
-        if ($vehicleId) {
-            $vehicle = Vehicle::find($vehicleId);
-            if ($vehicle) {
-                $vehicle->update([
-                    'plate_number' => $request->plate,
-                    'model' => $request->model,
-                    'year' => $request->year,
-                    'color' => $request->color,
-                    'odometer' => $request->odometer,
-                ]);
-            }
-        } else if ($request->plate || $request->model || $request->year || $request->color || $request->odometer) {
-            // Only create vehicle if any field is provided
+        if (!$vehicleId && $request->vehicle_name) {
             $vehicle = Vehicle::create([
+                'client_id' => $clientId, // link to newly created or existing client
                 'plate_number' => $request->plate,
                 'model' => $request->model,
                 'year' => $request->year,
                 'color' => $request->color,
                 'odometer' => $request->odometer,
-                'client_id' => $request->client_id,
             ]);
             $vehicleId = $vehicle->id;
-        } else {
-            $vehicleId = null;
         }
 
+
         $invoice->update([
-            'client_id' => $request->client_id,
+            'client_id' => $clientId, // ✅ use updated value
             'vehicle_id' => $vehicleId,
-            'customer_name' => $request->customer_name,
-            'vehicle_name' => $request->vehicle_name,
+            'vehicle_name' => null,
+            'customer_name' => null,
             'source_type' => 'quotation',
             'service_status' => 'pending',
             'status' => 'unpaid',
