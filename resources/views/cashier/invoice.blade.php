@@ -11,7 +11,7 @@
     $filteredPaid = $history->where('source_type', 'invoicing')
     ->where('created_at', '>=', now()->subHours(48))
     ->where('status', 'paid');
-  @endphp
+    @endphp
 
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <style>
@@ -218,6 +218,11 @@
             <label class="form-label fw-bold">Address</label>
             <input type="text" name="address" class="form-control"
             value="{{ old('address', $invoice->address ?? '') }}">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label fw-bold">Date</label>
+            <input type="date" name="created_date" class="form-control"
+            value="{{ old('created_date', isset($invoice) ? \Carbon\Carbon::parse($invoice->created_at)->format('Y-m-d') : \Carbon\Carbon::now()->format('Y-m-d')) }}">
           </div>
           </div>
         </div> {{-- end card-body --}}

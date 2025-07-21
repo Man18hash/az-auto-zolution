@@ -60,6 +60,7 @@ class InvoiceController extends Controller
             'invoice_no' => 'required|string|unique:invoices,invoice_no',
             'number' => 'nullable|string',
             'address' => 'nullable|string',
+            'created_date' => 'nullable|date',
         ]);
 
 
@@ -103,7 +104,11 @@ class InvoiceController extends Controller
             $vehicleId = null;
         }
 
-        $invoice = Invoice::create([
+        $date = $request->input('created_date') ?? now();
+
+
+        $invoice = new Invoice();
+        $invoice->forceFill([
             'client_id' => $clientId,
             'vehicle_id' => $vehicleId,
             'customer_name' => $request->customer_name,
@@ -119,7 +124,8 @@ class InvoiceController extends Controller
             'invoice_no' => $request->invoice_no,
             'number' => $request->number,
             'address' => $request->address,
-        ]);
+            'created_at' => $date, // ✅ this will now be respected
+        ])->save();
 
         // ✅ Items & Jobs remain same...
         $invoice->items()->delete();
@@ -230,6 +236,8 @@ class InvoiceController extends Controller
             'status' => 'required|in:unpaid,paid,cancelled,voided',
             'service_status' => 'required|in:pending,in_progress,done',
             'invoice_no' => 'required|string|unique:invoices,invoice_no,' . $invoice->id,
+
+            'created_date' => 'nullable|date',
         ]);
 
         // ✅ Ensure new client created if no client_id
@@ -270,6 +278,8 @@ class InvoiceController extends Controller
             $vehicleId = null;
         }
 
+        $date = $request->input('created_date') ?? now();
+
         $invoice->update([
             'client_id' => $clientId,
             'vehicle_id' => $vehicleId,
@@ -280,6 +290,7 @@ class InvoiceController extends Controller
             'status' => $request->status ?? 'unpaid',
             'subtotal' => $request->subtotal,
             'total_discount' => $request->input('total_discount', 0),
+            'created_at' => $date,
 
             'vat_amount' => $request->vat_amount,
             'grand_total' => $request->grand_total,
