@@ -283,7 +283,8 @@
         <div class="col-md-3">
         <label class="form-label fw-bold">Total Discount</label>
         <input type="number" step="0.01" name="total_discount" class="form-control"
-          value="{{ old('total_discount', $invoice->total_discount ?? '') }}">
+          value="{{ old('total_discount', $invoice->total_discount ?? 0) }}">
+
 
         </div>
         <div class="col-md-3">
@@ -487,12 +488,16 @@
     <td><input name="items[${idx}][quantity]" type="number" class="form-control form-control-sm" value="${qty}"></td>
     <td><input name="items[${idx}][acquisition_price]" type="number" step="0.01" class="form-control form-control-sm" value="${data?.acquisition_price || ''}"></td>
     <td><input name="items[${idx}][original_price]" type="number" step="0.01" class="form-control form-control-sm" value="${orig}"></td>
-    <td><input name="items[${idx}][discounted_price]" type="number" step="0.01" class="form-control form-control-sm" value="${data?.discounted_price || ''}"></td>
-    <td class="col-line-total">${lineTotal}</td>
+    <td><input name="items[${idx}][discount_value]" type="number" step="0.01" class="form-control form-control-sm" value="${data?.discount_value || ''}"></td>
+    <td class="col-line-total text-end">0.00</td>
+    <input type="hidden" name="items[${idx}][discounted_price]" value="0.00">
+
+
     <td><button type="button" class="btn btn-sm btn-danger remove-btn">✕</button></td>
     </tr>`);
 
-      row.find('[name$="[quantity]"], [name$="[original_price]"], [name$="[discounted_price]"]').on('input', recalc);
+      row.find('[name$="[quantity]"], [name$="[original_price]"], [name$="[discount_value]"]').on('input', recalc);
+
 
       row.find('.manual-toggle').on('click', function () {
       row.find('.manual-fields').removeClass('d-none');
@@ -626,11 +631,15 @@
       $('#items-table tbody tr').each(function () {
       const q = +$(this).find('[name$="[quantity]"]').val() || 0;
       const op = +$(this).find('[name$="[original_price]"]').val() || 0;
-      const dp = +$(this).find('[name$="[discounted_price]"]').val() || 0;
-      const p = op - dp;
+      const dv = +$(this).find('[name$="[discount_value]"]').val() || 0;
+      const p = op - dv;
       const t = q * p;
       itemsTotal += t;
+      $(this).find('[name$="[discounted_price]"]').val(t.toFixed(2)); // set discounted_price = line_total
       $(this).find('.col-line-total').text(t.toFixed(2));
+
+
+
       });
       $('#jobs-table tbody tr').each(function () {
       jobsTotal += +$(this).find('[name$="[total]"]').val() || 0;

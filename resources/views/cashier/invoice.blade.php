@@ -560,7 +560,8 @@
     <td><input name="items[${idx}][price]" type="number" step="0.01" class="form-control form-control-sm" value="${price}"></td>
     <input type="hidden" name="items[${idx}][original_price]" value="${price}">
 
-    <td><input name="items[${idx}][discounted_price]" type="number" step="0.01" class="form-control form-control-sm" value="${data?.discounted_price || ''}"></td>
+    <td><input name="items[${idx}][discount_value]" type="number" step="0.01" class="form-control form-control-sm" value="${data?.discount_value || ''}"></td>
+
     <td class="col-line-total">${lineTotal}</td>
     <td><button type="button" class="btn btn-sm btn-danger remove-btn">✕</button></td>
     </tr>`);
@@ -616,7 +617,8 @@
 
 
     // qty/price inputs → recalc
-    row.find('[name$="[quantity]"], [name$="[price]"], [name$="[discounted_price]"]').on('input', recalc);
+    row.find('[name$="[quantity]"], [name$="[price]"], [name$="[discount_value]"]').on('input', recalc);
+
 
 
     // remove row
@@ -748,9 +750,11 @@
       const $r = $(this);
       const qty = +$r.find('[name$="[quantity]"]').val() || 0;
       const price = +$r.find('[name$="[price]"]').val() || 0;
-      const discounted = +$r.find('[name$="[discounted_price]"]').val() || 0;
+      const discounted = +$r.find('[name$="[discount_value]"]').val() || 0;
       const finalPrice = price - discounted;
       const lineTotal = qty * finalPrice;
+
+
 
 
       itemsTotal += lineTotal;

@@ -30,7 +30,7 @@
 
     // 6) net after discounts (if you have any)
     $net_sales = $total_sales - $invoice->total_discount;
-  @endphp
+    @endphp
 
 
 
@@ -392,13 +392,14 @@
         {{ $item->manual_part_name ?? $item->part?->item_name ?? '-' }}
         </td>
         <td>
-        ₱{{ number_format($item->original_price - $item->discounted_price, 2) }}
-        @if($item->discounted_price > 0)
+        ₱{{ number_format($item->original_price, 2) }}
+        @if($item->discount_value > 0)
       <small style="display:block;color:#888;">
-        (₱{{ number_format($item->original_price, 2) }} - ₱{{ number_format($item->discounted_price, 2) }})
+        (₱{{ number_format($item->original_price, 2) }} - ₱{{ number_format($item->discount_value, 2) }})
       </small>
       @endif
         </td>
+
         <td>₱{{ number_format($item->line_total, 2) }}</td>
       </tr>
     @endforeach

@@ -118,8 +118,9 @@ class QuotationController extends Controller
         if ($request->has('items')) {
             foreach ($request->items as $item) {
                 $original = $item['original_price'] ?? ($item['manual_selling_price'] ?? 0);
-                $discount = $item['discounted_price'] ?? 0;
+                $discount = $item['discount_value'] ?? 0;
                 $effectivePrice = $original - $discount;
+
                 $qty = $item['quantity'] ?? 0;
                 $lineTotal = $qty * $effectivePrice;
 
@@ -131,9 +132,11 @@ class QuotationController extends Controller
                     'manual_selling_price' => $item['manual_selling_price'] ?? null,
                     'quantity' => $qty,
                     'original_price' => $original,
-                    'discounted_price' => $discount,
+                    'discount_value' => $discount,              // 👈 new correct field
+                    'discounted_price' => $lineTotal,           // 👈 line_total is now equal to discounted_price
                     'line_total' => $lineTotal,
                 ]);
+
 
 
             }
@@ -250,8 +253,9 @@ class QuotationController extends Controller
         if ($request->has('items')) {
             foreach ($request->items as $item) {
                 $original = $item['original_price'] ?? ($item['manual_selling_price'] ?? 0);
-                $discount = $item['discounted_price'] ?? 0;
+                $discount = $item['discount_value'] ?? 0;
                 $effectivePrice = $original - $discount;
+
                 $qty = $item['quantity'] ?? 0;
                 $lineTotal = $qty * $effectivePrice;
 
@@ -263,9 +267,11 @@ class QuotationController extends Controller
                     'manual_selling_price' => $item['manual_selling_price'] ?? null,
                     'quantity' => $qty,
                     'original_price' => $original,
-                    'discounted_price' => $discount,
+                    'discount_value' => $discount,              // 👈 new correct field
+                    'discounted_price' => $lineTotal,           // 👈 line_total is now equal to discounted_price
                     'line_total' => $lineTotal,
                 ]);
+
 
 
 
