@@ -132,6 +132,9 @@ Route::middleware(['auth', 'role:cashier'])
      ->name('cashier.')
      ->group(function () {
 
+          
+
+
           Route::get('ajax/serviceorder/clients', [ServiceOrderController::class, 'ajaxClients'])
                ->name('serviceorder.ajax.clients');
 

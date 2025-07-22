@@ -15,13 +15,13 @@ class HistoryController extends Controller
 
         if ($request->filled('search')) {
             $s = $request->search;
-            $query->where(function($q) use ($s) {
-                $q->whereHas('client', fn($c) => $c->where('name','like',"%$s%"))
-                  ->orWhereHas('vehicle', fn($v) => $v->where('plate_number','like',"%$s%"))
-                  ->orWhere('customer_name','like',"%$s%")
-                  ->orWhere('vehicle_name','like',"%$s%")
-                  ->orWhere('status','like',"%$s%")
-                  ->orWhere('source_type','like',"%$s%");
+            $query->where(function ($q) use ($s) {
+                $q->whereHas('client', fn($c) => $c->where('name', 'like', "%$s%"))
+                    ->orWhereHas('vehicle', fn($v) => $v->where('plate_number', 'like', "%$s%"))
+                    ->orWhere('customer_name', 'like', "%$s%")
+                    ->orWhere('vehicle_name', 'like', "%$s%")
+                    ->orWhere('status', 'like', "%$s%")
+                    ->orWhere('source_type', 'like', "%$s%");
             });
         }
 
@@ -40,5 +40,13 @@ class HistoryController extends Controller
         ])->findOrFail($id);
 
         return view('cashier.history-view', compact('record'));
+    }
+
+
+    public function json($id)
+    {
+        $invoice = \App\Models\Invoice::findOrFail($id);
+
+        return response()->json(['invoice' => $invoice]);
     }
 }
