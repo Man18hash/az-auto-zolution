@@ -119,16 +119,46 @@
     .table tbody tr {
     transition: background-color 0.3s;
     }
+
+    .select2-results__options {
+    max-height: 250px !important;
+    overflow-y: auto !important;
+    }
+
+    /* Optional: Prevent overlapping with other dropdowns or modals */
+    .select2-dropdown {
+    z-index: 10060 !important;
+    }
+
+    .select2-container--default .select2-results__option--highlighted {
+    background-color: #4a90e2;
+    color: white;
+    }
+
+    .select2-container {
+    width: 100% !important;
+    }
+
+    .input-group {
+    position: relative;
+    }
+
+    #items-table td:first-child,
+    #items-table th:first-child {
+    width: 300px;
+    min-width: 250px;
+    max-width: 350px;
+    }
+
+    /* Force select2 inside that column to stay within limits */
+    #items-table .select2-container {
+    width: 100% !important;
+    }
   </style>
   <div class="container mt-4">
     <h2 class="mb-4 text-center">{{ isset($invoice) ? 'Edit Quotation' : 'Create Quotation' }}</h2>
 
-    @if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-    {{ session('success') }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    </div>
-    @endif
+
 
     <form
     action="{{ isset($invoice) ? route('cashier.quotation.update', $invoice->id) : route('cashier.quotation.store') }}"
@@ -414,7 +444,6 @@
       },
       processResults: function (data, params) {
         params.page = params.page || 1;
-
         return {
         results: data.results,
         pagination: {
@@ -427,14 +456,22 @@
       minimumInputLength: 0,
       placeholder: '-- search client --',
       allowClear: true
+    }).on('select2:select', function (e) {
+      const data = e.params.data;
+      // Fill the fields only if user didn't type anything manually
+      if (!$('[name="number"]').data('manual')) {
+      $('[name="number"]').val(data.phone || '');
+      }
+      if (!$('[name="address"]').data('manual')) {
+      $('[name="address"]').val(data.address || '');
+      }
     });
-
-
 
 
     $('#vehicle_id').select2({
       placeholder: '-- search vehicle --',
       allowClear: true
+
     });
 
     $('#client_id').on('change', function () {
@@ -458,7 +495,25 @@
       $('#odometer').val(s.data('odometer') || '');
     });
 
-    function addItemRow(data = null) {
+    @if(isset($invoice) && $invoice->client)
+    const clientOption = new Option("{{ $invoice->client->name }}", "{{ $invoice->client->id }}", true, true);
+    $('#client_id').append(clientOption).trigger('change');
+    @endif
+
+      @if(isset($invoice) && $invoice->vehicle)
+    const vehicleOption = new Option("{{ $invoice->vehicle->plate_number }}", "{{ $invoice->vehicle->id }}", true, true);
+    $(vehicleOption).attr({
+      'data-plate': "{{ $invoice->vehicle->plate_number }}",
+      'data-model': "{{ $invoice->vehicle->model }}",
+      'data-year': "{{ $invoice->vehicle->year }}",
+      'data-color': "{{ $invoice->vehicle->color }}",
+      'data-odometer': "{{ $invoice->vehicle->odometer }}"
+    });
+    $('#vehicle_id').append(vehicleOption).trigger('change');
+    @endif
+
+
+      function addItemRow(data = null) {
       const idx = $('#items-table tbody tr').length;
       const partId = data?.part_id || '';
       const qty = data?.quantity || 1;
@@ -500,64 +555,64 @@
 
 
       row.find('.manual-toggle').on('click', function () {
-      row.find('.manual-fields').removeClass('d-none');
-      row.find('.input-group').addClass('d-none');
+        row.find('.manual-fields').removeClass('d-none');
+        row.find('.input-group').addClass('d-none');
       });
 
       const select2Data = [
-      { id: '', text: '-- search part --', price: 0, acquisition: 0 },
-      ...parts.map(p => ({
+        { id: '', text: '-- search part --', price: 0, acquisition: 0 },
+        ...parts.map(p => ({
         id: p.id,
         text: `${p.item_name} (${p.part_number || 'N/A'}) - Stock: ${p.quantity}`,
         search: `${p.item_name} ${p.part_number}`, // searchable content
         price: +p.selling,
         acquisition: +p.acquisition_price,
         disabled: p.quantity == 0
-      }))
+        }))
       ];
 
 
       const $partSelect = row.find('.part-select').select2({
-      data: select2Data,
-      placeholder: '-- search part --',
-      allowClear: true,
-      width: 'resolve',
-      dropdownParent: $('#items-table'),
-      matcher: function (params, data) {
+        data: select2Data,
+        placeholder: '-- search part --',
+        allowClear: true,
+        width: 'resolve',
+        dropdownParent: $('#items-table'),
+        matcher: function (params, data) {
         if ($.trim(params.term) === '') return data;
 
         if (typeof data.search === 'undefined') return null;
 
         if (data.search.toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
-        return data;
+          return data;
         }
 
         return null;
-      },
-      templateResult: function (data) {
+        },
+        templateResult: function (data) {
         if (!data.id) return data.text;
         if (data.disabled) {
-        return $('<span style="color:red;">' + data.text + ' (Out of stock)</span>');
+          return $('<span style="color:red;">' + data.text + ' (Out of stock)</span>');
         }
         return data.text;
-      }
+        }
       })
 
-      .on('select2:select', e => {
+        .on('select2:select', e => {
         row.find('[name$="[original_price]"]').val(e.params.data.price.toFixed(2));
         row.find('[name$="[acquisition_price]"]').val(e.params.data.acquisition.toFixed(2));
         row.find('[name$="[quantity]"]').val(1);
         recalc();
-      })
-      .on('select2:clear', () => {
+        })
+        .on('select2:clear', () => {
         row.find('[name$="[original_price]"]').val('');
         recalc();
-      });
+        });
 
       if (partId) {
-      $partSelect.val(partId).trigger('change');
-      const sel = select2Data.find(o => o.id == partId);
-      if (sel) row.find('[name$="[original_price]"]').val(sel.price.toFixed(2));
+        $partSelect.val(partId).trigger('change');
+        const sel = select2Data.find(o => o.id == partId);
+        if (sel) row.find('[name$="[original_price]"]').val(sel.price.toFixed(2));
       }
 
 
@@ -566,31 +621,31 @@
       row.find('[name$="[quantity]"], [name$="[original_price]"]').on('input', recalc);
       row.find('.remove-btn').on('click', () => { row.remove(); recalc(); });
       if (data?.manual_part_name) {
-      row.find('.manual-fields').removeClass('d-none');
-      row.find('.input-group').addClass('d-none');
-      row.find('[name$="[manual_part_name]"]').val(data.manual_part_name);
-      row.find('[name$="[manual_serial_number]"]').val(data.manual_serial_number);
-      row.find('[name$="[manual_acquisition_price]"]').val(data.manual_acquisition_price);
-      row.find('[name$="[manual_selling_price]"]').val(data.manual_selling_price);
-      row.find('[name$="[acquisition_price]"]').val(data.manual_acquisition_price);
-      row.find('[name$="[original_price]"]').val(data.manual_selling_price);
+        row.find('.manual-fields').removeClass('d-none');
+        row.find('.input-group').addClass('d-none');
+        row.find('[name$="[manual_part_name]"]').val(data.manual_part_name);
+        row.find('[name$="[manual_serial_number]"]').val(data.manual_serial_number);
+        row.find('[name$="[manual_acquisition_price]"]').val(data.manual_acquisition_price);
+        row.find('[name$="[manual_selling_price]"]').val(data.manual_selling_price);
+        row.find('[name$="[acquisition_price]"]').val(data.manual_acquisition_price);
+        row.find('[name$="[original_price]"]').val(data.manual_selling_price);
       }
 
 
 
       row.find('.cancel-manual').on('click', () => { row.find('.manual-fields').addClass('d-none'); row.find('.input-group').removeClass('d-none'); });
       row.find('.save-manual').on('click', () => {
-      const partName = row.find('[name$="[manual_part_name]"]').val() || '';
-      const serial = row.find('[name$="[manual_serial_number]"]').val() || '';
-      const acq = parseFloat(row.find('[name$="[manual_acquisition_price]"]').val()) || 0;
-      const sell = parseFloat(row.find('[name$="[manual_selling_price]"]').val()) || 0;
+        const partName = row.find('[name$="[manual_part_name]"]').val() || '';
+        const serial = row.find('[name$="[manual_serial_number]"]').val() || '';
+        const acq = parseFloat(row.find('[name$="[manual_acquisition_price]"]').val()) || 0;
+        const sell = parseFloat(row.find('[name$="[manual_selling_price]"]').val()) || 0;
 
-      row.find('[name$="[original_price]"]').val(sell.toFixed(2));
-      row.find('[name$="[quantity]"]').val(1);
-      row.find('[name$="[acquisition_price]"]').val(acq.toFixed(2));
+        row.find('[name$="[original_price]"]').val(sell.toFixed(2));
+        row.find('[name$="[quantity]"]').val(1);
+        row.find('[name$="[acquisition_price]"]').val(acq.toFixed(2));
 
-      // replace the entire cell with plain inputs
-      row.find('td').first().html(`
+        // replace the entire cell with plain inputs
+        row.find('td').first().html(`
     <input type="text" name="items[${idx}][manual_part_name]" class="form-control form-control-sm mb-1" value="${partName}" placeholder="Part Name" readonly>
     <input type="text" name="items[${idx}][manual_serial_number]" class="form-control form-control-sm mb-1" value="${serial}" placeholder="Serial #" readonly>
     <input type="number" name="items[${idx}][manual_acquisition_price]" class="form-control form-control-sm mb-1" value="${acq}" placeholder="Acquisition ₱" readonly>
@@ -600,13 +655,13 @@
 
 
 
-      recalc();
+        recalc();
       });
 
 
       $('#items-table tbody').append(row);
       recalc();
-    }
+      }
 
     function addJobRow(data = null) {
       const idx = $('#jobs-table tbody tr').length;
@@ -726,6 +781,13 @@
     $(toggleMutualFields); // initial call on page load
 
   </script>
+
+
+  @if(session('success'))
+    <script>
+    alert("{{ session('success') }}");
+    </script>
+  @endif
 
 
 @endsection

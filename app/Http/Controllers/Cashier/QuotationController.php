@@ -68,6 +68,8 @@ class QuotationController extends Controller
 
         ]);
 
+
+
         // Vehicle logic: if vehicle_id given, update it; else, create new vehicle
         // Create client if manual customer name is provided
         $clientId = $request->client_id;
@@ -111,6 +113,25 @@ class QuotationController extends Controller
             'number' => $request->number,
             'address' => $request->address,
         ]);
+
+        if ($clientId) {
+            $client = Client::find($clientId);
+            $updated = false;
+
+            if ($client && empty($client->phone) && $request->number) {
+                $client->phone = $request->number;
+                $updated = true;
+            }
+
+            if ($client && empty($client->address) && $request->address) {
+                $client->address = $request->address;
+                $updated = true;
+            }
+
+            if ($updated) {
+                $client->save();
+            }
+        }
 
 
         // Save items
@@ -246,6 +267,26 @@ class QuotationController extends Controller
             'grand_total' => $request->grand_total,
             'payment_type' => $request->payment_type,
         ]);
+        // ✅ Update client contact info if missing
+        if ($clientId) {
+            $client = Client::find($clientId);
+            $updated = false;
+
+            if ($client && empty($client->phone) && $request->number) {
+                $client->phone = $request->number;
+                $updated = true;
+            }
+
+            if ($client && empty($client->address) && $request->address) {
+                $client->address = $request->address;
+                $updated = true;
+            }
+
+            if ($updated) {
+                $client->save();
+            }
+        }
+
 
         // Update items (delete old, add new)
         // Update items (delete old, add new)
