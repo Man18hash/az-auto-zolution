@@ -11,7 +11,7 @@
     $filteredPaid = $history->where('source_type', 'invoicing')
     ->where('created_at', '>=', now()->subHours(48))
     ->where('status', 'paid');
-    @endphp
+  @endphp
 
   <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
   <style>
@@ -371,10 +371,11 @@
       data-bs-toggle="tooltip" title="Print Invoice">
       <i class="bi bi-printer"></i>
       </a>
-      <button class="btn btn-sm btn-outline-primary btn-edit-invoice" data-id="{{ $h->id }}"
-      data-url="{{ route('cashier.invoice.edit', $h->id) }}" data-bs-toggle="tooltip" title="Edit Invoice">
+      <a href="{{ route('cashier.invoice.edit', $h->id) }}?modal=1" class="btn btn-sm btn-outline-primary"
+      data-bs-toggle="tooltip" title="Edit Invoice">
       <i class="bi bi-pencil-square"></i>
-      </button>
+      </a>
+
       @if(in_array($h->service_status, ['in_progress', 'done']))
       <form action="{{ route('cashier.invoice.update', $h->id) }}" method="POST" class="d-inline">
       @csrf @method('PUT')
@@ -442,6 +443,23 @@
     </div>
   @endif
 
+  {{-- ALL INVOICES (Paginated) --}}
+  <h3 class="mt-5 fw-bold"><i class="bi bi-collection text-secondary"></i> All Invoices</h3>
+  <div class="row mb-3 mt-3">
+    <div class="col-md-6">
+    <input type="text" id="live-search" class="form-control" placeholder="Search invoice, customer, or plate...">
+
+    </div>
+  </div>
+
+
+  <div id="live-search-results">
+    @include('cashier.partials.invoice-results', ['results' => $recentAll])
+  </div>
+
+
+
+
   {{-- JS Assets --}}
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
@@ -486,6 +504,17 @@
     const client = e.params.data;
     $('input[name="number"]').val(client.number || '');
     $('input[name="address"]').val(client.address || '');
+    });
+
+    $('#live-search').on('input', function () {
+    const query = $(this).val();
+    $.ajax({
+      url: '{{ route("cashier.invoice.liveSearch") }}',
+      data: { search: query },
+      success: function (data) {
+      $('#live-search-results').html(data);
+      }
+    });
     });
 
     // ─── VEHICLE SELECT2 ───
@@ -859,14 +888,7 @@
     @endif
 
 
-    // Handle edit buttons
-    $('.btn-edit-invoice').on('click', function (e) {
-      e.preventDefault();
-      let url = $(this).data('url');
-      $.get(url, function (response) {
-      window.location.href = url + '?modal=1';
-      });
-    });
+
 
     // If coming from edit (controller passes $invoice), auto open modal
     @if(isset($invoice) && request('modal') == 1)

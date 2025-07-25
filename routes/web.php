@@ -190,6 +190,7 @@ Route::middleware(['auth', 'role:cashier'])
                     'update' => 'invoice.update',
                ]);
           Route::get('invoice/{id}/view', [InvoiceController::class, 'view'])->name('invoice.view');
+          Route::get('invoice/live-search', [InvoiceController::class, 'liveSearch'])->name('invoice.liveSearch');
           Route::view('invoice-blank', 'cashier.invoice-blank')->name('invoice-blank');
 
           Route::get('ajax/clients', [InvoiceController::class, 'ajaxClients'])->name('ajax.clients');
