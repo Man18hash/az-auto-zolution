@@ -25,6 +25,7 @@ class Invoice extends Model
         'invoice_no',
         'number',
         'address',
+        'created_at',
     ];
 
     protected $attributes = [

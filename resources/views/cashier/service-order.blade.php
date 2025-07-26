@@ -379,10 +379,23 @@ $(document).ready(function() {
         },
         cache: true
     },
+    templateResult: function(data) {
+        if (data.loading) return data.text;
+        return $('<span>' + data.text + ' <small class="text-muted">' + (data.number || '') + ' | ' + (data.address || '') + '</small></span>');
+    },
+    templateSelection: function (data) {
+        if (!data.id) return data.text;
+        setTimeout(function () {
+            $('input[name="number"]').val(data.number || '');
+            $('input[name="address"]').val(data.address || '');
+        }, 100);
+        return data.text;
+    },
     placeholder: '— walk‐in or choose —',
     minimumInputLength: 0,
     allowClear: true
 });
+
 
 // Optional: auto-trigger search when opened
 $('#client_id').on('select2:open', function () {

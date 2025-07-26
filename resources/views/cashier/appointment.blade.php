@@ -111,7 +111,18 @@
     font-size: 0.75rem;
     padding: 0.35em 0.6em;
     }
+
+    #calendar .fc-toolbar-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    }
+
+    #calendar .fc-daygrid-event {
+    font-size: 0.85rem;
+    padding: 2px 4px;
+    }
   </style>
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
   <div class="container mt-4">
     <h2 class="mb-4 text-center">{{ isset($invoice) ? 'Edit Appointment' : 'Create Appointment' }}</h2>
 
@@ -123,28 +134,49 @@
     @endif
 
 
-    <button id="toggleCalendar" class="btn btn-outline-secondary shadow-sm mb-3">Show Calendar</button>
+    <button class="btn btn-outline-secondary shadow-sm mb-3" data-bs-toggle="modal" data-bs-target="#calendarModal">
+    Show Calendar
+    </button>
 
-    <div id='calendar' style="display: none;"></div>
+
+
     <script>
+    let calendarInitialized = false;
+
     document.addEventListener('DOMContentLoaded', function () {
-      var calendarEl = document.getElementById('calendar');
-      window.calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: 'dayGridMonth',
-      events: @json($events),
-      eventClick: function (info) {
-        info.jsEvent.preventDefault();
-        if (info.event.url) {
-        window.location.href = info.event.url;
+      const calendarModal = document.getElementById('calendarModal');
+
+      calendarModal.addEventListener('shown.bs.modal', function () {
+      const calendarEl = document.getElementById('calendar');
+
+      if (!calendarInitialized) {
+        window.calendar = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        themeSystem: 'bootstrap',
+        height: "auto",
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,listWeek'
+        },
+        events: @json($events),
+        eventClick: function (info) {
+          info.jsEvent.preventDefault();
+          if (info.event.url) {
+          window.location.href = info.event.url;
+          }
         }
+        });
+        window.calendar.render();
+        calendarInitialized = true;
+      } else {
+        window.calendar.render();
       }
       });
-      window.calendar.render();
     });
-
-
-
     </script>
+
+
 
 
 
@@ -353,6 +385,21 @@
     </div>
     </div>
 
+    <!-- Calendar Modal -->
+    <!-- Calendar Modal -->
+    <div class="modal fade" id="calendarModal" tabindex="-1" aria-labelledby="calendarModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="calendarModalLabel">📅 Appointment Calendar</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div id="calendar" style="min-height: 600px;"></div>
+      </div>
+      </div>
+    </div>
+    </div>
 
   </div>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -467,15 +514,7 @@
     $(toggleMutualFields);
 
 
-    $('#toggleCalendar').on('click', function () {
-    $('#calendar').toggle();
-    if ($('#calendar').is(':visible')) {
-      $(this).text('Hide Calendar');
-      window.calendar.render(); // make sure it draws properly after showing
-    } else {
-      $(this).text('Show Calendar');
-    }
-    });
+    
 
   </script>
 

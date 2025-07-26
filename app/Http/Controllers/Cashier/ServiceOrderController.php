@@ -55,13 +55,46 @@ class ServiceOrderController extends Controller
         ]);
 
 
-        if ($request->customer_name || $request->vehicle_name) {
-            $clientId = null;
-            $vehicleId = null;
+        if ($request->customer_name) {
+            // Save manual customer as new client
+            $client = Client::firstOrCreate(
+                ['name' => $request->customer_name],
+                ['phone' => $request->number, 'address' => $request->address]
+            );
+
+            $clientId = $client->id;
         } else {
             $clientId = $request->client_id;
+        }
+
+        // If vehicle_name is manually entered but not vehicle_id
+        if ($request->vehicle_name && !$request->vehicle_id) {
+            $vehicleId = null;
+        } else {
             $vehicleId = $request->vehicle_id;
         }
+
+
+        // Update client if missing phone or address
+        if ($clientId) {
+            $client = Client::find($clientId);
+            $updated = false;
+
+            if (!$client->phone && $request->number) {
+                $client->phone = $request->number;
+                $updated = true;
+            }
+
+            if (!$client->address && $request->address) {
+                $client->address = $request->address;
+                $updated = true;
+            }
+
+            if ($updated) {
+                $client->save();
+            }
+        }
+
 
         // Vehicle logic
 
@@ -199,6 +232,27 @@ class ServiceOrderController extends Controller
             $vehicleId = $request->vehicle_id;
         }
 
+        // Update client if missing phone or address
+        if ($clientId) {
+            $client = Client::find($clientId);
+            $updated = false;
+
+            if (!$client->phone && $request->number) {
+                $client->phone = $request->number;
+                $updated = true;
+            }
+
+            if (!$client->address && $request->address) {
+                $client->address = $request->address;
+                $updated = true;
+            }
+
+            if ($updated) {
+                $client->save();
+            }
+        }
+
+
 
         if ($vehicleId) {
             $vehicle = Vehicle::find($vehicleId);
@@ -331,13 +385,17 @@ class ServiceOrderController extends Controller
             'results' => $results->map(function ($client) {
                 return [
                     'id' => $client->id,
-                    'text' => $client->name
+                    'text' => $client->name,
+                    'address' => $client->address,
+                    'number' => $client->phone, // change from $client->number to $client->phone
                 ];
             }),
             'pagination' => [
                 'more' => $results->hasMorePages()
             ]
         ]);
+
+
     }
 
 
