@@ -31,7 +31,7 @@
       {{ ucfirst($h->status) }}
       </span>
       </td>
-      <td class="text-end">
+      <td class="text-=end">
       <a href="{{ route('cashier.invoice.view', $h->id) }}" class="btn btn-sm btn-outline-info"
       title="View Invoice">
       <i class="bi bi-eye"></i>
