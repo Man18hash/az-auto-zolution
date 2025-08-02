@@ -19,9 +19,9 @@ class ARCashDepositController extends Controller
     public function storeAR(Request $request)
     {
         $validated = $request->validate([
-            'date'        => 'required|date',
+            'date' => 'required|date',
             'description' => 'required|string|max:255',
-            'amount'      => 'required|numeric|min:0',
+            'amount' => 'required|numeric|min:0',
         ]);
         $validated['user_id'] = auth()->id();
         ArCollection::create($validated);
@@ -31,14 +31,31 @@ class ARCashDepositController extends Controller
     public function storeCashDeposit(Request $request)
     {
         $validated = $request->validate([
-            'date'        => 'required|date',
+            'date' => 'required|date',
             'description' => 'required|string|max:255',
-            'amount'      => 'required|numeric|min:0',
+            'amount' => 'required|numeric|min:0',
         ]);
         $validated['user_id'] = auth()->id();
         CashDeposit::create($validated);
         return back()->with('success', 'Cash Deposit recorded!');
     }
+
+    public function destroyAR($id)
+    {
+        $ar = \App\Models\ArCollection::findOrFail($id);
+        $ar->delete();
+
+        return back()->with('success', 'A/R Collection deleted!');
+    }
+
+    public function destroyCashDeposit($id)
+    {
+        $deposit = \App\Models\CashDeposit::findOrFail($id);
+        $deposit->delete();
+
+        return back()->with('success', 'Cash Deposit deleted!');
+    }
+
 
     // Add edit/update/destroy as needed
 }
